@@ -7,6 +7,7 @@ namespace AlgoTemplates.UT
     {
         static void Main(string[] args)
         {
+			FFTTest.RunTests();
 			DijkstraMinHeapTest.RunTest();
 			MaxSegTreeTest.RunTest();
 			HeapTest.RunTests();
