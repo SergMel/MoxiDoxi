@@ -11,6 +11,7 @@ namespace AlgoTemplates.UT
 			DijkstraMinHeapTest.RunTest();
 			MaxSegTreeTest.RunTest();
 			HeapTest.RunTests();
+			GCDTest.RunTests();
 
 			Console.WriteLine("Hello World!");
         }
