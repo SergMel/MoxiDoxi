@@ -29,21 +29,13 @@ namespace AlgoTemplates.UT
 
 		static void Main(string[] args)
 		{
-			FileStream stream = new FileStream(@"C:\Personal\tmp\hr.txt", FileMode.Open);
-			StreamReader sr = new StreamReader(stream);
-			int n = Convert.ToInt32(sr.ReadLine());
-
-			int[][] coordinates = new int[n][];
-
-			for (int coordinatesRowItr = 0; coordinatesRowItr < n; coordinatesRowItr++)
-			{
-				coordinates[coordinatesRowItr] = Array.ConvertAll(sr.ReadLine().Split(' '), coordinatesTemp => Convert.ToInt32(coordinatesTemp));
-			}
-			sr.Close();
-			stream.Close();
-			double result = solve(coordinates);
-
-			Console.WriteLine(result);
+			do
+			{   // AlgoTemplates.Bike_Racers.Solution.Main(args);
+				Console.WriteLine();
+				LP.Solution.Main(args);
+				;
+			} while (Console.ReadKey().Key == ConsoleKey.Enter);
+			//Bike_RacersTests.Test();
 		}
 		//     static void Main(string[] args)
 		//     {
