@@ -9,6 +9,7 @@ namespace LP
 {
 	public class Solution
 	{
+
 		static private int FindPivotColumn(double[,] matrix)
 		{
 			for (int i = 0; i < matrix.GetLength(1) - 1; i++)
@@ -61,17 +62,13 @@ namespace LP
 		static private Dictionary<int, int> FindBFS(double[,] matrix, Dictionary<int, int> basis)
 		{
 			var or = Copy(matrix);
-			if (matrix.GetLength(1) < 12)
-			
-				check(matrix, -1, -1);
-			check(or,matrix, basis);
+
+			// check(or, matrix, basis);
 			Dictionary<int, int> ret = new Dictionary<int, int>(basis);
 			foreach (var item in basis)
 			{
 				pivot(matrix, item.Key, item.Value);
-				check(or, matrix, basis);
-				if (matrix.GetLength(1) < 12)
-					check(matrix, -1, -1);
+				// check(or, matrix, basis);
 			}
 
 			int pivotcol;
@@ -79,21 +76,19 @@ namespace LP
 			{
 				var pivotrow = FindPivotRow(matrix, pivotcol);
 				pivot(matrix, pivotrow, pivotcol);
-				if (matrix.GetLength(1) < 12)
-					check(matrix, -1, -1);
 				ret[pivotrow] = pivotcol;
-				check(or, matrix, ret);
+				// check(or, matrix, ret);
 			}
 
 			return ret;
 		}
-		 public static double[,] Copy(double[,] matrix)
+		public static double[,] Copy(double[,] matrix)
 		{
 			double[,] ret = new double[matrix.GetLength(0), matrix.GetLength(1)];
-			
+
 			for (int i = 0; i < matrix.GetLength(0); i++)
 			{
-				for (int j = 0; j < matrix.GetLength(1) ; j++)
+				for (int j = 0; j < matrix.GetLength(1); j++)
 				{
 					ret[i, j] = matrix[i, j];
 				}
@@ -101,7 +96,7 @@ namespace LP
 			return ret;
 		}
 
-			static double[,] BuildAuzMatrix(double[,] matrix)
+		static double[,] BuildAuzMatrix(double[,] matrix)
 		{
 			double[,] ret = new double[matrix.GetLength(0), matrix.GetLength(1) - 1 + matrix.GetLength(0)];
 			for (int i = matrix.GetLength(1) - 1; i < ret.GetLength(1) - 1; i++)
@@ -123,16 +118,65 @@ namespace LP
 			return ret;
 		}
 
+
 		static private double CalculateMax(double[,] matrix)
 		{
 
 			double[,] initMatrix = BuildAuzMatrix(matrix);
 
 			var basis = Enumerable.Range(0, matrix.GetLength(0) - 1).ToDictionary(k => k + 1, val => val + matrix.GetLength(1) - 1);
+			var basis_aux = FindBFS(initMatrix, basis);
 
-			basis = FindBFS(initMatrix, basis).Where(pr => pr.Value < matrix.GetLength(1) - 1).ToDictionary(pr=>pr.Key, v=>v.Value);
+			// ============================================
+
+			basis = new Dictionary<int, int>();
+			HashSet<int> cols = new HashSet<int>(basis_aux.Select(el => el.Value));
+			for (int i = 1; i < matrix.GetLength(0); i++)
+			{
+				if (basis_aux[i] < matrix.GetLength(1) - 1)
+					basis[i] = basis_aux[i];
+				else
+				{
+					for (int j = 0; j < matrix.GetLength(1) - 1; j++)
+					{
+						if (cols.Contains(j))
+							continue;
+						;
+						if (initMatrix[i, j] > 0)
+						{
+							basis[i] = j;
+							cols.Add(j);
+						}
+						else if (initMatrix[i, j] < 0 && initMatrix[i, initMatrix.GetLength(1) - 1] == 0)
+						{
+							basis[i] = j;
+							cols.Add(j);
+						}
+					}
+				}
+			}
+
+			Debug.Assert(basis.Count == matrix.GetLength(0) - 1);
+
+			// ============================================
+
+			for (int c = 0; c < matrix.GetLength(1) - 1; c++)
+			{
+				matrix[0, c] += initMatrix[0, c];
+			}
+			matrix[0, matrix.GetLength(1) - 1] = initMatrix[0, initMatrix.GetLength(1) - 1];
+			for (int i = 1; i < matrix.GetLength(0); i++)
+			{
+				for (int c = 0; c < matrix.GetLength(1) - 1; c++)
+				{
+					matrix[i, c] = initMatrix[i, c];
+				}
+				matrix[i, matrix.GetLength(1) - 1] = initMatrix[i, initMatrix.GetLength(1) - 1];
+			}
+			// ============================================
+
 			FindBFS(matrix, basis);
-			
+
 
 			return -1 * matrix[0, matrix.GetLength(1) - 1];
 		}
@@ -172,7 +216,7 @@ namespace LP
 				cc++;
 			}
 
-			var maxLiars = 0;// CalculateMax(matrix);
+			var maxLiars = CalculateMax(matrix);
 			var minLiars = -CalculateMax(matrix2);
 			return new int[] { (int)minLiars, (int)maxLiars };
 		}
@@ -183,7 +227,8 @@ namespace LP
 			File.AppendAllText(file, Environment.NewLine + "=========================================================");
 			File.AppendAllText(file, $"Pivot row: {pivotRow}, column: {pivotColumnt}" + Environment.NewLine);
 
-			for (int i = 0; i < matrix.GetLength(0); i++) {
+			for (int i = 0; i < matrix.GetLength(0); i++)
+			{
 				File.AppendAllText(file, Environment.NewLine);
 				for (int j = 0; j < matrix.GetLength(1); j++)
 				{
@@ -199,8 +244,8 @@ namespace LP
 			{
 				sol[pr.Value] = matrix[pr.Key, matrix.GetLength(1) - 1] / matrix[pr.Key, pr.Value];
 			}
-			
-			for (int r = 1; r < origin.GetLength(0) ; r++)
+
+			for (int r = 1; r < origin.GetLength(0); r++)
 			{
 				double res = 0;
 				for (int c = 0; c < sol.Length; c++)
@@ -209,42 +254,8 @@ namespace LP
 				}
 				Debug.Assert(res == origin[r, origin.GetLength(1) - 1]);
 			}
-			
+
 		}
-
-
-
-		public static void check(double[,] matrix, int pivotRow, int pivotColumnt)
-		{
-			int[] sol1 = new int[] {0,1,1,1,0, 1, 0,0,0,1 };
-
-			int[] sol2 = new int[] { 1, 0, 1, 1, 0, 0, 1, 0, 0, 1 };
-			for (int i = 1; i < matrix.GetLength(0); i++)
-			{
-				Debug.Assert(matrix[i, matrix.GetLength(1) - 1] >= 0);
-
-				double sum1 = 0;
-
-				double sum2 = 0;
-				for (int j = 0; j < matrix.GetLength(1) - 1; j++)
-				{
-					sum1 += matrix[i, j] * sol1[j];
-					sum2 += matrix[i, j] * sol2[j];
-				}
-				Debug.Assert(sum1 == matrix[i, matrix.GetLength(1) - 1] && sum2 == matrix[i, matrix.GetLength(1) - 1]);
-			}
-
-			 double s1 = 0;
-
-			 double s2 = 0;
-			for (int j = 0; j < matrix.GetLength(1) - 1; j++)
-			{
-				s1 += matrix[0, j] * sol1[j];
-				s2 += matrix[0, j] * sol2[j];
-			}
-			Debug.Assert(s1 == -3 + matrix[0, matrix.GetLength(1) - 1] || s2 ==-3+  matrix[0, matrix.GetLength(1) - 1]);
-		}
-
 
 		public static void Main(string[] args)
 		{
