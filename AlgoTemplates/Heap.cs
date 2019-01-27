@@ -125,6 +125,7 @@ namespace Algo
                     if (arr[next].CompareTo(arr[i]) < 0)
                     {
                         Swap(i, next);
+                        i = next;
                     }
                     else
                     {
@@ -136,6 +137,7 @@ namespace Algo
                     if (arr[next].CompareTo(arr[i]) > 0)
                     {
                         Swap(i, next);
+                        i = next;
                     }
                     else
                     {
