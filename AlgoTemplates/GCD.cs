@@ -24,5 +24,59 @@ namespace AlgoTemplates
 			}
 			return n2;
 		}
+
+        public static ulong Inverse(ulong a, ulong n)
+		{
+            ulong x, y =0;
+            EuclideanExt(a, n, out x, out y);
+            return x;
+        }
+
+        public static ulong EuclideanExt(ulong n1, ulong n2, out ulong x, out ulong y)
+		{
+            x = 0;
+            y = 1;     
+            
+            bool r = false;
+			if (n1 == n2) return n1;
+
+			else if (n1 < n2)
+			{
+                r = true;
+				var tmp = n1;
+				n1 = n2;
+				n2 = tmp;
+			}
+            ulong q = 0;
+            ulong xl =1;
+            ulong yl = 0;
+
+			while (n2 > 0)
+			{
+                q = n1 / n2;
+
+				var tmp = n2;
+				n2 = n1 % n2;
+				n1 = tmp;
+
+                tmp = x;
+                x = xl - q *x;
+                xl = tmp ;
+
+                tmp = y;
+                y = yl - q*y;
+                yl = tmp;
+
+
+			}
+            x = xl;
+            y = yl;
+            if (r)
+            {                
+                x =yl;
+                y =xl;
+            }
+			return x*n1+y*n2;
+		}
 	}
 }
