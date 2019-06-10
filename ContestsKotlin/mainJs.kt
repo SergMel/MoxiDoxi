@@ -1,0 +1,3 @@
+fun write(){
+    println("hi")
+}

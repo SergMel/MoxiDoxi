@@ -22,12 +22,21 @@ namespace Algorithms
             }
         }
 
+        public BitSum(int n)
+        {
+            if (n <= 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(n));
+            }
+            arr = Enumerable.Repeat(0L, n + 1).ToList();
+        }
+
         public void Add(int index, long val)
         {
             if (index < 0 || index >= arr.Count)
                 throw new ArgumentOutOfRangeException(nameof(index));
             index++;
-            while (index < arr.Count )
+            while (index < arr.Count)
             {
                 arr[index] += val;
                 index = addLowestBit(index);
@@ -57,7 +66,13 @@ namespace Algorithms
             return indexStart > 0 ? GetSum(indexEnd) - GetSum(indexStart - 1) : GetSum(indexEnd);
         }
 
-
+        public int Length
+        {
+            get
+            {
+                return this.arr.Count - 1;
+            }
+        }
 
         private static int removeLowestBit(int i)
         {
@@ -68,8 +83,6 @@ namespace Algorithms
         {
             return i + (i & (-i));
         }
-
-
     }
 
     public static class BitUT
