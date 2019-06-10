@@ -1,10 +1,9 @@
-﻿using Algo;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
 
-namespace AlgoTest
+namespace Algorithms
 {
     public class HeapTest
     {

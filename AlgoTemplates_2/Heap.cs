@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace Algo
+namespace Algorithms
 {
     public class Heap<T> where T : IComparable<T>
     {
