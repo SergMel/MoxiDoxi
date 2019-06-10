@@ -13,6 +13,9 @@ namespace AlgoTemplates_2
             BitUT.Tests();
             Console.WriteLine("Heap!");
             HeapTest.RunTests();
+            Console.WriteLine("GCD!");
+            GCDUT.Tests();
+
             Console.WriteLine("Finished!");
         }
     }
