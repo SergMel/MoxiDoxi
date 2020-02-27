@@ -14,11 +14,42 @@ using System.Numerics;
 
 static class SolutionTemplate
 {
+    static long modPow(long v, long p, long mod)
+    {
+        if (p == 0)
+            return 1;
+        if (p == 1)
+            return v;
+
+        long add = 1;
+        while (p > 1)
+        {
+            if (p % 2 == 1)
+            {
+                add *= v;
+                add %= mod;
+            }
+            v = (v * v) % mod;
+            p = p / 2;
+        }
+        return (v * add) % mod;
+    }
+
+
     public static List<T> GetOrAddNew<K, T>(this Dictionary<K, List<T>> dic, K key)
     {
         if (dic == null) throw new ArgumentNullException();
 
         return (dic[key] = dic.ContainsKey(key) ? dic[key] : new List<T>());
+    }
+
+    public static V GetValueOrDefault<K, V>(this Dictionary<K, V> dic, K key)
+    {
+        if (dic == null) throw new ArgumentNullException();
+        if (dic.ContainsKey(key))
+            return dic[key];
+        return default(V);
+
     }
 
     public static void AddOrSet<K>(this Dictionary<K, long> dic, K key, long add)
@@ -51,9 +82,9 @@ static class SolutionTemplate
         return Array.ConvertAll(Console.ReadLine().Trim().Split(), long.Parse);
     }
 
-    static int[] readInts()
+    static int[] readInts(int add = 0)
     {
-        return Array.ConvertAll(Console.ReadLine().Trim().Split(), int.Parse);
+        return Array.ConvertAll(Console.ReadLine().Trim().Split(), el => int.Parse(el) + add);
     }
 
     static string[] readStrings()
@@ -107,6 +138,24 @@ static class SolutionTemplate
             sb.Append(delimeter);
         return sb;
     }
+
+    static void Write2DimArr<T>(this T[,] arr, string delimeter = " ", string delimeter2 = "\n")
+    {
+        if (arr == null)
+            throw new ArgumentNullException(nameof(arr));
+
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < arr.GetLength(0); i++)
+        {
+            for (int j = 0; j < arr.GetLength(1); j++)
+            {
+                WriteObject(sb, arr[i, j], delimeter);
+            }
+            sb.Append(delimeter2);
+        }
+        Console.Write(sb.ToString());
+    }
+
 
     static void Write(this object obj, string delimeter = " ")
     {
@@ -178,6 +227,10 @@ static class SolutionTemplate
         }
         return res;
     }
+    static List<int>[] graphArr(int n)
+    {
+        return Enumerable.Range(0, n).Select(el => new List<int>()).ToArray();
+    }
 
     static Dictionary<int, List<int>> readDicEdges(int n)
     {
@@ -197,9 +250,46 @@ static class SolutionTemplate
         return dic;
     }
 
+    private static int LessOrEqual(List<int> arr, int val)
+    {
+        if (arr.Count == 0)
+        {
+            return -1;
+        }
+        int l = -1;
+        int r = arr.Count;
+        while ( r - l > 1)
+        {
+            var cur = (l + r) / 2;
+            if (arr[cur] <= val)
+            {
+                l = cur;
+            }
+            else
+            {
+                r = cur;
+            }
+        }
 
+        return l;
+    }
 
     private static void Main2(string[] args)
     {
+        var n = readInt();
+        var gr = GraphArr(n);
+        for (int i = 0; i < n; i++)
+        {
+            var str = readString();
+            for (int j = 0; j < n; j++)
+            {
+                if (str[j] == '1')
+                {
+                    gr[i].Add(j);
+                }
+            }
+        }
+        var m = readInt();
+        var arr = readInts();
     }
 }

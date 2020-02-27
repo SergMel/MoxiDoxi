@@ -7,6 +7,31 @@ namespace Algorithms
 {
     public class GCD
     {
+
+        public static BigInteger Euclidean(BigInteger n1, BigInteger n2)
+        {
+            if (n1 < 1 || n2 < 1)
+            {
+                throw new ArgumentOutOfRangeException();
+            }
+
+            if (n1 == n2) return n1;
+            else if (n1 < n2)
+            {
+                var tmp = n1;
+                n1 = n2;
+                n2 = tmp;
+            }
+
+            while (n1 % n2 > 0)
+            {
+                var tmp = n2;
+                n2 = n1 % n2;
+                n1 = tmp;
+            }
+            return n2;
+        }
+
         public static int Euclidean(int n1, int n2)
         {
             if (n1 < 1 || n2 < 1)
@@ -31,59 +56,75 @@ namespace Algorithms
             return n2;
         }
 
-        public static ulong Inverse(ulong a, ulong n)
+        public static ulong Inverse(ulong u, ulong v)
         {
-            ulong x, y = 0;
-            EuclideanExt(a, n, out x, out y);
-            return x;
+
+            ulong inv, u1, u3, v1, v3, t1, t3, q;
+            int iter;
+            /* Step X1. Initialise */
+            u1 = 1;
+            u3 = u;
+            v1 = 0;
+            v3 = v;
+            /* Remember odd/even iterations */
+            iter = 1;
+            /* Step X2. Loop while v3 != 0 */
+            while (v3 != 0)
+            {
+                /* Step X3. Divide and "Subtract" */
+                q = u3 / v3;
+                t3 = u3 % v3;
+                t1 = u1 + q * v1;
+                /* Swap */
+                u1 = v1; v1 = t1; u3 = v3; v3 = t3;
+                iter = -iter;
+            }
+            /* Make sure u3 = gcd(u,v) == 1 */
+            if (u3 != 1)
+                return 0;   /* Error: No inverse exists */
+                            /* Ensure a positive result */
+            if (iter < 0)
+                inv = v - u1;
+            else
+                inv = u1;
+            return inv;
         }
 
-        private static ulong EuclideanExt(ulong n1, ulong n2, out ulong x, out ulong y)
+        public static BigInteger Inverse(BigInteger u, BigInteger v)
         {
-            x = 0;
-            y = 1;
 
-            bool r = false;
-            if (n1 == n2) return n1;
-
-            else if (n1 < n2)
+            BigInteger inv, u1, u3, v1, v3, t1, t3, q;
+            int iter;
+            /* Step X1. Initialise */
+            u1 = 1;
+            u3 = u;
+            v1 = 0;
+            v3 = v;
+            /* Remember odd/even iterations */
+            iter = 1;
+            /* Step X2. Loop while v3 != 0 */
+            while (v3 != 0)
             {
-                r = true;
-                var tmp = n1;
-                n1 = n2;
-                n2 = tmp;
+                /* Step X3. Divide and "Subtract" */
+                q = u3 / v3;
+                t3 = u3 % v3;
+                t1 = u1 + q * v1;
+                /* Swap */
+                u1 = v1; v1 = t1; u3 = v3; v3 = t3;
+                iter = -iter;
             }
-            ulong q = 0;
-            ulong xl = 1;
-            ulong yl = 0;
-
-            while (n2 > 0)
-            {
-                q = n1 / n2;
-
-                var tmp = n2;
-                n2 = n1 % n2;
-                n1 = tmp;
-
-                tmp = x;
-                x = xl - q * x;
-                xl = tmp;
-
-                tmp = y;
-                y = yl - q * y;
-                yl = tmp;
-
-
-            }
-            x = xl;
-            y = yl;
-            if (r)
-            {
-                x = yl;
-                y = xl;
-            }
-            return x * n1 + y * n2;
+            /* Make sure u3 = gcd(u,v) == 1 */
+            if (u3 != 1)
+                return 0;   /* Error: No inverse exists */
+                            /* Ensure a positive result */
+            if (iter < 0)
+                inv = v - u1;
+            else
+                inv = u1;
+            return inv;
         }
+
+
     }
 
     public static class GCDUT
@@ -103,11 +144,11 @@ namespace Algorithms
             Debug.Assert(GCD.Euclidean(15, 10) == 5);
             Debug.Assert(GCD.Euclidean(15, 10) == 5);
             int simple = 1000000007;
-            for(int i = 1; i < simple;i++)
+            for (int i = 1; i < simple; i++)
             {
                 Debug.Assert(GCD.Euclidean(i, simple) == 1);
             }
-            
+
 
         }
     }

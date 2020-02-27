@@ -1,3 +1,4 @@
+// https://codeforces.com/gym/101745
 // https://contest.yandex.ru/contest/7636/standings/
 // https://codeforces.com/gym/101745/attachments/download/6759/statements.pdf
 // Editorial: https://codeforces.com/blog/entry/58135

@@ -5,6 +5,7 @@ using System.Linq;
 
 namespace Algorithms
 {
+
     public class UF<T>
     {
         private Dictionary<T, int> dic;
@@ -51,7 +52,7 @@ namespace Algorithms
 
         public bool IsConnected(T ii, T jj)
         {
-        
+
             if (object.Equals(ii, jj))
             {
                 return true;
@@ -69,7 +70,7 @@ namespace Algorithms
         {
 
             if (!dic.ContainsKey(ii))
-            {                
+            {
                 items.Add(ii);
                 dic[ii] = items.Count - 1;
                 N++;
