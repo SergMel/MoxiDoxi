@@ -11,10 +11,391 @@ using System.Text.RegularExpressions;
 using System.Text;
 using System;
 using System.Numerics;
+using static IO;
 
-static class SolutionTemplate
+
+public static class IO
 {
-    static long modPow(long v, long p, long mod)
+    public static long readLong()
+    {
+        return long.Parse(Console.ReadLine().Trim());
+    }
+
+    public static int readInt()
+    {
+        return int.Parse(Console.ReadLine().Trim());
+    }
+
+    public static double readDouble()
+    {
+        return double.Parse(Console.ReadLine().Trim());
+    }
+
+    public static long[] readLongs()
+    {
+        return Array.ConvertAll(Console.ReadLine().Trim().Split(), long.Parse);
+    }
+
+    public static int[] readInts(int add = 0)
+    {
+        return Array.ConvertAll(Console.ReadLine().Trim().Split(), el => int.Parse(el) + add);
+    }
+
+    public static string[] readStrings()
+    {
+        return Console.ReadLine().Trim().Split();
+    }
+
+    public static string readString()
+    {
+        return Console.ReadLine().Trim();
+    }
+
+    public static int readInt(this StreamReader str)
+    {
+        if (str == null) throw new ArgumentNullException();
+        return int.Parse(str.ReadLine().Trim());
+    }
+
+
+    public static int[] readInts(this StreamReader str)
+    {
+        if (str == null) throw new ArgumentNullException();
+        return Array.ConvertAll(str.ReadLine().Trim().Split(), int.Parse);
+    }
+
+    static StringBuilder WriteArray(StringBuilder sb, IEnumerable lst, string delimeter)
+    {
+        if (lst == null)
+            throw new ArgumentNullException(nameof(lst));
+        if (sb == null)
+            throw new ArgumentNullException(nameof(sb));
+
+        foreach (var el in lst)
+        {
+            sb.Append(el);
+            if (delimeter != null)
+                sb.Append(delimeter);
+        }
+        return sb;
+    }
+
+    static StringBuilder WriteObject(StringBuilder sb, object obj, string delimeter)
+    {
+        if (obj == null)
+            throw new ArgumentNullException(nameof(obj));
+        if (sb == null)
+            throw new ArgumentNullException(nameof(sb));
+
+        sb.Append(obj);
+        if (delimeter != null)
+            sb.Append(delimeter);
+        return sb;
+    }
+
+    static void Write2DimArr<T>(this T[,] arr, string delimeter = " ", string delimeter2 = "\n")
+    {
+        if (arr == null)
+            throw new ArgumentNullException(nameof(arr));
+
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < arr.GetLength(0); i++)
+        {
+            for (int j = 0; j < arr.GetLength(1); j++)
+            {
+                WriteObject(sb, arr[i, j], delimeter);
+            }
+            sb.Append(delimeter2);
+        }
+        Console.Write(sb.ToString());
+    }
+
+
+    public static void Write(this object obj, string delimeter = " ")
+    {
+        if (obj == null)
+            throw new ArgumentNullException(nameof(obj));
+
+        var str = obj as string;
+        var enm = obj as IEnumerable;
+        StringBuilder sb = new StringBuilder();
+
+        if (str == null && enm != null)
+            WriteArray(sb, enm, delimeter);
+        else
+        {
+            WriteObject(sb, obj, delimeter);
+        }
+        Console.Write(sb.ToString());
+    }
+
+    public static void WriteLine(this object obj, string delimeter = " ")
+    {
+        obj.Write(delimeter);
+        Console.WriteLine();
+    }
+}
+
+public static class NumTh
+{
+    public static List<long> getAllDivisors(long val)
+    {
+        List<long> lst = new List<long>();
+        var v = 2;
+        while (v * v <= val)
+        {
+            if (val % v == 0)
+            {
+                lst.Add(v);
+            }
+            v++;
+        }
+        return lst;
+    }
+
+    public static Dictionary<long, int> getPrimeDivisors(long val)
+    {
+        var res = new Dictionary<long, int>();
+        int cnt = 0;
+        while (val % 2 == 0)
+        {
+            val /= 2;
+            cnt++;
+        }
+        if (cnt > 0)
+        {
+            res[2] = cnt;
+        }
+
+        var v = 3;
+        while (v * v <= val)
+        {
+            if (val % v != 0)
+            {
+                continue;
+            }
+            cnt = 0;
+            while (val % v == 0)
+            {
+                cnt++;
+                val /= v;
+            }
+            res[v] = cnt;
+            v += 2;
+        }
+        return res;
+    }
+
+    #region Euclidian
+
+    public static int Euclidean(int n1, int n2)
+    {
+        n1 = Math.Abs(n1);
+        n2 = Math.Abs(n2);
+
+        if (n1 == n2) return n1;
+        else if (n1 < n2)
+        {
+            var tmp = n1;
+            n1 = n2;
+            n2 = tmp;
+        }
+
+        while (n1 % n2 > 0)
+        {
+            var tmp = n2;
+            n2 = n1 % n2;
+            n1 = tmp;
+        }
+        return n2;
+    }
+
+    public static long Euclidean(long n1, long n2)
+    {
+        n1 = Math.Abs(n1);
+        n2 = Math.Abs(n2);
+
+        if (n1 == n2) return n1;
+        else if (n1 < n2)
+        {
+            var tmp = n1;
+            n1 = n2;
+            n2 = tmp;
+        }
+
+        while (n1 % n2 > 0)
+        {
+            var tmp = n2;
+            n2 = n1 % n2;
+            n1 = tmp;
+        }
+        return n2;
+    }
+
+
+    public static BigInteger Euclidean(BigInteger n1, BigInteger n2)
+    {
+        n1 = BigInteger.Abs(n1);
+        n2 = BigInteger.Abs(n2);
+
+        if (n1 == n2) return n1;
+        else if (n1 < n2)
+        {
+            var tmp = n1;
+            n1 = n2;
+            n2 = tmp;
+        }
+
+        while (n1 % n2 > 0)
+        {
+            var tmp = n2;
+            n2 = n1 % n2;
+            n1 = tmp;
+        }
+        return n2;
+    }
+
+    #endregion Euclidian
+
+    #region Euclidean extended
+
+    public static long Inverse(long a, long m)
+    {
+        var (inv, y, d) = EuclideanExt(a, m);
+        if (d != 1)
+        {
+            throw new Exception("No inverse value");
+        }
+        return inv;
+    }
+
+    public static BigInteger Inverse(BigInteger a, BigInteger m)
+    {
+        var (inv, y, d) = EuclideanExt(a, m);
+        if (d != 1)
+        {
+            throw new Exception("No inverse value");
+        }
+        return inv;
+    }
+
+    public static int Inverse(int a, int m)
+    {
+        var (inv, y, d) = EuclideanExt(a, m);
+        if (d != 1)
+        {
+            throw new Exception("No invers value");
+        }
+        return inv;
+    }
+
+    // x * a + y * b = gcd
+    public static (BigInteger, BigInteger, BigInteger) EuclideanExt(BigInteger a, BigInteger b)
+    {
+        var signa = a.Sign;
+        var signb = b.Sign;
+
+        var res = new Stack<(BigInteger a, BigInteger b)>();
+        bool reverse = false;
+
+        a = BigInteger.Abs(a);
+        b = BigInteger.Abs(b);
+
+        if (a > b)
+        {
+            reverse = true;
+            (a, b) = (b, a);
+        }
+
+        var (m11, m12, m21, m22) = (new BigInteger(1L), new BigInteger(0L), new BigInteger(0L), new BigInteger(1L));
+        while (a > 0)
+        {
+            (a, b) = (b % a, a);
+            (m11, m12, m21, m22) = (m12 - m11 * a, m11, m22 - m21 * a, m21);
+        }
+        var (x, y, d) = (m12, m22, b);
+        if (reverse)
+        {
+            (x, y) = (y, x);
+        }
+        return (signa * x, signb * y, d);
+    }
+
+    // x * a + y * b = gcd
+    public static (long, long, long) EuclideanExt(long a, long b)
+    {
+        var signa = Math.Sign(a);
+        var signb = Math.Sign(b);
+
+        var res = new Stack<(long a, long b)>();
+        bool reverse = false;
+
+        a = Math.Abs(a);
+        b = Math.Abs(b);
+
+        if (a > b)
+        {
+            reverse = true;
+            (a, b) = (b, a);
+        }
+
+        var (m11, m12, m21, m22) = (1L, 0L, 0L, 1L);
+        while (a > 0)
+        {
+            (a, b) = (b % a, a);
+            (m11, m12, m21, m22) = (m12 - m11 * a, m11, m22 - m21 * a, m21);
+        }
+        var (x, y, d) = (m12, m22, b);
+        if (reverse)
+        {
+            (x, y) = (y, x);
+        }
+        return (signa * x, signb * y, d);
+    }
+
+    // x * a + y * b = gcd
+    public static (int, int, int) EuclideanExt(int a, int b)
+    {
+        var signa = Math.Sign(a);
+        var signb = Math.Sign(b);
+
+        a = Math.Abs(a);
+        b = Math.Abs(b);
+
+        bool reverse = false;
+
+        if (a > b)
+        {
+            reverse = true;
+            (a, b) = (b, a);
+        }
+        var (m11, m12, m21, m22) = (1, 0, 0, 1);
+        while (a > 0)
+        {
+            (a, b) = (b % a, a);
+            (m11, m12, m21, m22) = (m12 - m11 * a, m11, m22 - m21 * a, m21);
+        }
+        var (x, y, d) = (m12, m22, b);
+        if (reverse)
+        {
+            (x, y) = (y, x);
+        }
+        return (signa * x, signb * y, d);
+    }
+
+    #endregion Euclidean extended
+}
+
+
+public static class Mod
+{
+    static long MOD = 2;
+    public static void SetMod(long mod)
+    {
+        MOD = mod;
+    }
+
+    public static long modPow(this long v, long p, long mod)
     {
         if (p == 0)
             return 1;
@@ -35,6 +416,64 @@ static class SolutionTemplate
         return (v * add) % mod;
     }
 
+    public static long modMultiply(this long v, long v2, long mod)
+    {
+        return ((v % mod) * (v2 % mod)) % mod;
+    }
+
+    public static long modDivide(this long v, long v2, long mod)
+    {
+        return (NumTh.Inverse(v2, mod) * (v % mod)) % mod;
+    }
+
+    public static long modInverse(this long v, long mod)
+    {
+        return NumTh.Inverse(v, mod);
+    }
+
+    public static long modAdd(this long v, long v2, long mod)
+    {
+        return ((v % mod) + (v2 % mod)) % mod;
+    }
+
+    public static long modSubtract(this long v, long v2, long mod)
+    {
+        return ((v % mod) - (v2 % mod)) % mod;
+    }
+
+    public static long modPow(this long v, long p)
+    {
+        return v.modPow(v, MOD);
+    }
+
+    public static long modMultiply(this long v, long v2)
+    {
+        return v.modMultiply(v2, MOD);
+    }
+
+    public static long modDivide(this long v, long v2)
+    {
+        return v.modDivide(v2, MOD);
+    }
+
+    public static long modInverse(this long v)
+    {
+        return NumTh.Inverse(v, MOD);
+    }
+
+    public static long modAdd(this long v, long v2)
+    {
+        return v.modAdd(v2, MOD);
+    }
+
+    public static long modSubtract(this long v, long v2)
+    {
+        return v.modSubtract(v2, MOD);
+    }
+}
+
+static class SolutionTemplate
+{
 
     public static List<T> GetOrAddNew<K, T>(this Dictionary<K, List<T>> dic, K key)
     {
@@ -128,129 +567,12 @@ static class SolutionTemplate
         return enm.Select((el, i) => new { val = el, index = i }).ToDictionary(key => key.val, val => val.index);
     }
 
-    static long readLong()
+    public static Dictionary<T, List<int>> ToIndiciesDictionary<T>(this IEnumerable<T> enm)
     {
-        return long.Parse(Console.ReadLine().Trim());
+        return enm.Select((el, i) => new { val = el, index = i }).GroupBy(el => el.val).
+            ToDictionary(key => key.Key, val => val.Select(v => v.index).ToList());
     }
 
-    static int readInt()
-    {
-        return int.Parse(Console.ReadLine().Trim());
-    }
-
-    static double readDouble()
-    {
-        return double.Parse(Console.ReadLine().Trim());
-    }
-
-    static long[] readLongs()
-    {
-        return Array.ConvertAll(Console.ReadLine().Trim().Split(), long.Parse);
-    }
-
-    static int[] readInts(int add = 0)
-    {
-        return Array.ConvertAll(Console.ReadLine().Trim().Split(), el => int.Parse(el) + add);
-    }
-
-    static string[] readStrings()
-    {
-        return Console.ReadLine().Trim().Split();
-    }
-
-    static string readString()
-    {
-        return Console.ReadLine().Trim();
-    }
-
-    public static int readInt(this StreamReader str)
-    {
-        if (str == null) throw new ArgumentNullException();
-        return int.Parse(str.ReadLine().Trim());
-    }
-
-
-    public static int[] readInts(this StreamReader str)
-    {
-        if (str == null) throw new ArgumentNullException();
-        return Array.ConvertAll(str.ReadLine().Trim().Split(), int.Parse);
-    }
-
-    static StringBuilder WriteArray(StringBuilder sb, IEnumerable lst, string delimeter)
-    {
-        if (lst == null)
-            throw new ArgumentNullException(nameof(lst));
-        if (sb == null)
-            throw new ArgumentNullException(nameof(sb));
-
-        foreach (var el in lst)
-        {
-            sb.Append(el);
-            if (delimeter != null)
-                sb.Append(delimeter);
-        }
-        return sb;
-    }
-
-    static StringBuilder WriteObject(StringBuilder sb, object obj, string delimeter)
-    {
-        if (obj == null)
-            throw new ArgumentNullException(nameof(obj));
-        if (sb == null)
-            throw new ArgumentNullException(nameof(sb));
-
-        sb.Append(obj);
-        if (delimeter != null)
-            sb.Append(delimeter);
-        return sb;
-    }
-
-    static void Write2DimArr<T>(this T[,] arr, string delimeter = " ", string delimeter2 = "\n")
-    {
-        if (arr == null)
-            throw new ArgumentNullException(nameof(arr));
-
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < arr.GetLength(0); i++)
-        {
-            for (int j = 0; j < arr.GetLength(1); j++)
-            {
-                WriteObject(sb, arr[i, j], delimeter);
-            }
-            sb.Append(delimeter2);
-        }
-        Console.Write(sb.ToString());
-    }
-
-
-    static void Write(this object obj, string delimeter = " ")
-    {
-        if (obj == null)
-            throw new ArgumentNullException(nameof(obj));
-
-        var enm = obj as IEnumerable;
-        StringBuilder sb = new StringBuilder();
-        if (enm != null)
-            WriteArray(sb, enm, delimeter);
-        else
-        {
-            WriteObject(sb, obj, delimeter);
-        }
-        Console.Write(sb.ToString());
-    }
-    static void WriteLine(this object obj, string delimeter = " ")
-    {
-        obj.Write(delimeter);
-        Console.WriteLine();
-    }
-    static void WriteS(params object[] obj)
-    {
-        obj.Write(" ");
-    }
-    static void WriteLineS(params object[] obj)
-    {
-        obj.WriteLine(" ");
-    }
 
     static bool isLess(string cur, string str)
     {
@@ -541,98 +863,26 @@ static class SolutionTemplate
         }
     }
 
-    class Item : IComparable<Item>
+    static List<int> getDeviders(int val)
     {
-        public int Id;
-        public int Value;
-        public long Cnt;
-
-        public int CompareTo(Item other)
+        int i = 2;
+        List<int> res = new List<int>();
+        while (i <= val)
         {
-            return this.Value - other.Value;
+            while (val % i == 0)
+            {
+                res.Add(i);
+            }
+            i++;
         }
-
-        public int CompareTo(object other)
-        {
-            return CompareTo((int)other);
-        }
-
+        return res;
     }
 
     private static void Main(string[] args)
     {
-        var n = readInt();
-        var a = readLongs();
-        var t = readLongs();
-
-        var dic = new Dictionary<long, List<int>>();
-        for (int i = 0; i < n; i++)
-        {
-            var el = a[i];
-            dic.GetOrAddNew(el).Add(i);
-        }
-        long total = 0;
-        var lst = dic.Select(el => el.Key).OrderBy(el => el).ToList();
-        Heap<Item> excess = new Heap<Item>();
-        long prev = -1;
-        foreach (var el in lst)
-        {
-            if (excess.Count() < 1)
-            {
-                foreach (var item in dic[el])
-                {
-                    excess.Add(new Item
-                    {
-                        Id = item,
-                        Cnt = el,
-                        Value = (int)t[item]
-                    });
-                }
-            }
-            else
-            {
-                long cur = prev; ;
-
-                while (excess.Count() > 0)
-                {
-                    var curItem = excess.Peek();
-                    if (cur < el)
-                    {
-                        excess.Pop();
-                        total += (cur - curItem.Cnt) * curItem.Value;
-                    }
-                    else
-                    {
-                        prev = el;
-                        break;
-                    }
-                    cur++;
-                }
-                foreach (var item in dic[el])
-                {
-                    excess.Add(new Item()
-                    {
-                        Id = item,
-                        Cnt = el,
-                        Value = (int)t[item]
-                    });
-                }
-            }
-            prev = el;
-
-        }
-        long cur2 = prev;
-        while (excess.Count() > 0)
-        {
-            var curItem = excess.Pop();
-
-            total += (cur2 - curItem.Cnt) * curItem.Value;
-
-            cur2++;
-
-        }
-
-        total.WriteLine();
+        var str = readString();
+        str.WriteLine();
 
     }
+
 }
