@@ -259,34 +259,35 @@ public static class NumTh
 
     #region Euclidean extended
 
-    public static long Inverse(long a, long m)
+    public static long Inverse(this long a, long m)
     {
         var (inv, y, d) = EuclideanExt(a, m);
         if (d != 1)
         {
             throw new Exception("No inverse value");
         }
-        return inv;
+
+        return inv < 0 ? m + inv : inv;
     }
 
-    public static BigInteger Inverse(BigInteger a, BigInteger m)
+    public static BigInteger Inverse(this BigInteger a, BigInteger m)
     {
         var (inv, y, d) = EuclideanExt(a, m);
         if (d != 1)
         {
             throw new Exception("No inverse value");
         }
-        return inv;
+        return inv < 0 ? m + inv : inv;
     }
 
-    public static int Inverse(int a, int m)
+    public static int Inverse(this int a, int m)
     {
         var (inv, y, d) = EuclideanExt(a, m);
         if (d != 1)
         {
             throw new Exception("No invers value");
         }
-        return inv;
+        return inv < 0 ? m + inv : inv;
     }
 
     // x * a + y * b = gcd
@@ -295,7 +296,6 @@ public static class NumTh
         var signa = a.Sign;
         var signb = b.Sign;
 
-        var res = new Stack<(BigInteger a, BigInteger b)>();
         bool reverse = false;
 
         a = BigInteger.Abs(a);
@@ -310,8 +310,9 @@ public static class NumTh
         var (m11, m12, m21, m22) = (new BigInteger(1L), new BigInteger(0L), new BigInteger(0L), new BigInteger(1L));
         while (a > 0)
         {
+            var tmp = b / a;
             (a, b) = (b % a, a);
-            (m11, m12, m21, m22) = (m12 - m11 * a, m11, m22 - m21 * a, m21);
+            (m11, m12, m21, m22) = (m12 - m11 * tmp, m11, m22 - m21 * tmp, m21);
         }
         var (x, y, d) = (m12, m22, b);
         if (reverse)
@@ -327,7 +328,6 @@ public static class NumTh
         var signa = Math.Sign(a);
         var signb = Math.Sign(b);
 
-        var res = new Stack<(long a, long b)>();
         bool reverse = false;
 
         a = Math.Abs(a);
@@ -342,8 +342,13 @@ public static class NumTh
         var (m11, m12, m21, m22) = (1L, 0L, 0L, 1L);
         while (a > 0)
         {
+            Console.WriteLine($"{m11} {m12} {m21} {m22}");
+        
+            var tmp = b / a;
+            Console.WriteLine($"{b} {a}");
             (a, b) = (b % a, a);
-            (m11, m12, m21, m22) = (m12 - m11 * a, m11, m22 - m21 * a, m21);
+            Console.WriteLine($"{b} {a}");
+            (m11, m12, m21, m22) = (m12 - m11 * tmp, m11, m22 - m21 * tmp, m21);
         }
         var (x, y, d) = (m12, m22, b);
         if (reverse)
@@ -372,8 +377,9 @@ public static class NumTh
         var (m11, m12, m21, m22) = (1, 0, 0, 1);
         while (a > 0)
         {
+            var tmp = b / a;
             (a, b) = (b % a, a);
-            (m11, m12, m21, m22) = (m12 - m11 * a, m11, m22 - m21 * a, m21);
+            (m11, m12, m21, m22) = (m12 - m11 * tmp, m11, m22 - m21 * tmp, m21);
         }
         var (x, y, d) = (m12, m22, b);
         if (reverse)
@@ -472,14 +478,20 @@ public static class Mod
     }
 }
 
-static class SolutionTemplate
+public static class Dic
 {
-
     public static List<T> GetOrAddNew<K, T>(this Dictionary<K, List<T>> dic, K key)
     {
         if (dic == null) throw new ArgumentNullException();
 
         return (dic[key] = dic.ContainsKey(key) ? dic[key] : new List<T>());
+    }
+
+    public static HashSet<T> GetOrAddNewHS<K, T>(this Dictionary<K, HashSet<T>> dic, K key)
+    {
+        if (dic == null) throw new ArgumentNullException();
+
+        return (dic[key] = dic.ContainsKey(key) ? dic[key] : new HashSet<T>());
     }
 
     public static V GetValueOrDefault<K, V>(this Dictionary<K, V> dic, K key)
@@ -518,7 +530,6 @@ static class SolutionTemplate
             dic.Remove(key);
         }
     }
-
 
     public static void AddOrSetRemove<K>(this Dictionary<K, int> dic, K key, int add)
     {
@@ -572,6 +583,38 @@ static class SolutionTemplate
         return enm.Select((el, i) => new { val = el, index = i }).GroupBy(el => el.val).
             ToDictionary(key => key.Key, val => val.Select(v => v.index).ToList());
     }
+}
+
+public static class Graph
+{
+    public static Dictionary<int, HashSet<int>> readGraphHs(int m)
+    {
+        Dictionary<int, HashSet<int>> res = new Dictionary<int, HashSet<int>>();
+        for (int i = 0; i < m; i++)
+        {
+            var arr = readInts();
+            res.GetOrAddNewHS(arr[0]).Add(arr[1]);
+            res.GetOrAddNewHS(arr[1]).Add(arr[0]);
+        }
+        return res;
+    }
+
+    public static Dictionary<int, List<int>> readGraph(int m)
+    {
+        Dictionary<int, List<int>> res = new Dictionary<int, List<int>>();
+        for (int i = 0; i < m; i++)
+        {
+            var arr = readInts();
+            res.GetOrAddNew(arr[0]).Add(arr[1]);
+            res.GetOrAddNew(arr[1]).Add(arr[0]);
+        }
+        return res;
+    }
+}
+
+static class SolutionTemplate
+{
+
 
 
     static bool isLess(string cur, string str)
@@ -878,11 +921,21 @@ static class SolutionTemplate
         return res;
     }
 
+    static long[] factorials;
+
+    static void precompute(int n)
+    {
+        factorials = new long[n + 1];
+        factorials[0] = 1;
+        for (int i = 1; i <= n; i++)
+        {
+            factorials[i] = Mod.modMultiply(factorials[i - 1], i);
+        }
+    }
+
     private static void Main(string[] args)
     {
-        var str = readString();
-        str.WriteLine();
-
+        Mod.modInverse(2, 998244353L).WriteLine();
     }
 
 }
