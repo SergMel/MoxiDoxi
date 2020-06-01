@@ -4,10 +4,13 @@ import Mod.mmult
 import Mod.mplus
 import Mod.mpow
 import Mod.setMod
-import NumTh.getPDivisors
 import NumTh.inverse
 import kotlin.collections.*
 import kotlin.math.*
+import java.util.Queue
+import java.util.LinkedList
+import java.util.PriorityQueue
+import NumTh.gcd
 
 fun readLn() = readLine()!!.trim() // string line
 fun readInt() = readLn().trim().toInt() // single int
@@ -54,12 +57,12 @@ object NumTh {
     }
 
     public fun inverse(la: Long, mod: Long): Long {
-        val res = euclideanExt(la, mod).first
+        val res = euclideanExt(la mmod mod, mod).first
         return if (res < 0) res + mod else res
     }
 
     public fun inverse(la: Int, mod: Int): Int {
-        val res = euclideanExt(la, mod).first
+        val res = euclideanExt(la mmod mod, mod).first
         return if (res < 0) res + mod else res
     }
 
@@ -202,6 +205,13 @@ object Mod {
 
     public fun Int.mmod(): Int {
         return (if (this < 0) _div + (this % _div) else this % _div).toInt()
+    }
+
+    public infix fun Long.mrem(v: Long): Long {
+        if (v == 0L) {
+            throw Exception()
+        }
+        return abs(this) % v
     }
 
     public fun Long.mpow(exp: Long, divisor: Long): Long {
@@ -369,46 +379,231 @@ object Comb {
 
     public fun Int.fact(): Int {
         return this.mfact(Mod.div.toInt())
-    }    
+    }
 }
 
-
-
-fun getMaxBit(v:Long):Int{
+fun getMaxBit(v: Long): Int {
     var res = 0
     var cur = v
-    while(cur > 0){
+    while (cur > 0) {
         res++
         cur = cur shr 1
     }
     return res
-
 }
 
-enum class PathState(val v:Byte){
-    None(0b00), 
-    Even(0b01), 
-    Odd(0b10), 
-    Both(0b11)
+fun isPrime(vl: Long): Boolean {
+
+    var test = 2L
+    while (test * test <= vl && (vl % test != 0L)) {
+        test++
+    }
+    return (vl == 2L) || (vl % test) != 0L
 }
 
-//(even, odd)
-fun getLevels(map:HashMap<Int, HashSet<Int>>, cur:Int, exc:Int, level:Int, res:HashMap<Int, Int>){
-    
-    for (el in map[cur]!!) {
-        if (el == exc){
-            continue
+fun getBit(v: Long, s: Int): Long {
+    return (v shr s) and 1
+}
+
+fun getNext1(v1: Long, s: Int): Int {
+    var cur = s
+    while (getBit(v1, cur) == 0L && cur < 64) {
+        cur++
+    }
+    return cur
+}
+
+fun replace10(v1: Long, v2: Long, st: Int, reverse: Boolean, res: MutableList<String>): Int {
+    var onep1 = getNext1(v1, st + 1)
+    var onep2 = getNext1(v2, st + 1)
+    var last = min(onep1, onep2)
+    if (last == 64) {
+        last = st + 2
+    }
+    last -= 1
+    for (i in st..last - 1) {
+        res.add(if (reverse) "S" else "W")
+    }
+    res.add(if (reverse) "N" else "E")
+    return last + 1
+}
+
+fun replace11(v1: Long, v2: Long, st: Int, reverse: Boolean, res: MutableList<String>): Int? {
+    var onep1 = getNext0(v1, st + 1)
+    var onep2 = getNext0(v2, st + 1)
+    if (onep1 != onep2) {
+        return null
+    }
+    res.add(if (reverse) "S" else "W")
+
+    var last = onep1
+    for (i in (st + 1)..(last - 1)) {
+        res.add(if (reverse) "E" else "N")
+    }
+    res.add(if (reverse) "N" else "E")
+    return last + 1
+}
+
+fun getNext0(v1: Long, s: Int): Int {
+    var cur = s
+    while (getBit(v1, cur) == 1L && cur < 64) {
+        cur++
+    }
+    return cur
+}
+
+fun pow(v: Long, pow: Long, mod: Long): Long {
+
+    if (pow == 0L) {
+        return 1L
+    }
+    if (pow == 1L) {
+        return v
+    }
+    var res = if (pow % 2L == 1L) v else 1L
+    val tmp = pow((v*v) % mod, pow / 2, mod)
+    res *= (tmp * tmp) % mod
+    res = res % mod
+    return res
+}
+
+class UF {
+    val rank = HashMap<Int, Int>()
+    val parent = HashMap<Int, Int>()
+    val counts = HashMap<Int, Int>()
+    var groupCnt = 0
+
+    fun add(v: Int) {
+        if (!rank.containsKey(v)) {
+            groupCnt ++
+            // println("$v: $groupCnt")
+            rank[v] = 1
+            parent[v] = v
+            counts[v] = 1
         }
-        
-        if(map[el]!!.size == 1 ){
-            res[level+1] = res.getOrElse(level+1) { 0 } + 1
-            continue
+    }
+
+    fun getParent(v: Int): Int {
+
+        add(v)
+        var p1 = v
+
+        while (parent[p1] != p1) {
+
+            val tmp = p1
+            p1 = parent[p1]!!
+            parent[tmp] = parent[p1]!!
         }
-        getLevels(map, el, cur, level+1, res);       
+        return p1
+    }
+
+    fun union(v1: Int, v2: Int) {
+
+        // println("union: $v1, $v2")
+        var p1 = getParent(v1)
+        var p2 = getParent(v2)
+        if (p1 == p2) {
+            return
+        }
+
+        groupCnt --
+        // println(groupCnt)
+        if (rank[p2]!! > rank[p1]!!) {
+            parent[p1] = p2
+            counts[p2] = counts[p2]!! + counts[p1]!!
+        } else if (rank[p2]!! < rank[p1]!!) {
+            parent[p2] = p1
+            counts[p1] = counts[p1]!! + counts[p2]!!
+        } else {
+            parent[p1] = p2
+            counts[p2] = counts[p2]!! + counts[p1]!!
+        }
+    }
+
+    fun connected(v1: Int, v2: Int): Boolean {
+        return getParent(v1) == getParent(v2)
     }
 }
 
-fun main(args: Array<String>) {
+fun getMaxDist(n:Int, ang:Double):Double{
+   // println("angle: $ang")
+    val cnt = ceil( n / 2.0).toInt()
+    val b = 0.5/ (Math.sin(PI * 0.5 / n.toDouble()))
+    var maxDist = -1.0
+    for (i in 0 until cnt) {
+        val angle =  ang+ i * PI / n.toDouble()
+        maxDist = max(maxDist, max(b*Math.cos(angle), b*Math.sin(angle)))
+    }
+    //println(maxDist)
+    //println(ang)
+    return maxDist
+}
+fun getVal(v:Long):Long{
+    var cur = v
+    var res = 0L
+    var pow = 1L
+    while(cur> 0){
+        res+= if (cur % 2 == 1L) pow * 9L else 0
+        pow*=10
+        cur = cur shr 1
+    }
+    return res
+}
+fun getMax(arr:List<Int>): Int{
     
-   
+    println("? ${arr.size} ${arr.joinToString(" ")}")
+    val res = readInt()
+    if(res == -1){
+        throw Exception()
+    }
+    return res
+}
+fun main(args: Array<String>) {
+    loop@ for(t in 1..readInt()){
+        val (n, k) = readInts()
+        val A = List<HashSet<Int>>(k) { readInts().drop(1).toHashSet() }
+        
+        val fullCollection = (1..n).toHashSet()
+        val Sfull = A.flatten().toHashSet()
+        if(k == 1){
+            val moutside = getMax(fullCollection.filter { !Sfull.contains(it) })   
+            println("! ${moutside.toString().repeat(k)}")
+            if(readLn() == "Incorrect"){
+                return
+            }
+            continue@loop
+        }
+        
+        var si = 1
+        var ei = n
+        var mx:Int = getMax(Sfull.toList())
+        
+        while(si < ei){
+            val middle = (si+ei) / 2
+            val left = getMax((si..middle).toList())
+       
+            if(left == mx) {
+                ei = middle                
+            } else{
+                si = middle + 1
+            }
+        }
+        
+        if(!Sfull.contains(si)){
+            println("! ${(1 until k).map { mx}.joinToString(" ")}")
+            if(readLn() == "Incorrect"){
+                return
+            }
+            continue
+        }
+        val asi = A.asSequence().filter { it.contains(si) }.first()
+
+        val moutside = getMax(fullCollection.asSequence().filter { !asi.contains(it) }.toList())
+        
+        val res = (0 until k).map{if (A[it].contains(si)) moutside else mx}.joinToString(" ") 
+        println("! $res")
+        if(readLn() == "Incorrect"){
+            return
+        }
+    }
 }
