@@ -1,4 +1,4 @@
-package template
+package Archive.Y2019
 
 import java.util.Queue
 import java.util.LinkedList
@@ -399,7 +399,6 @@ class  MinHeap {
         //println("add")
         arr.add(Item(d, v))
         up(arr.lastIndex)
-        // println("heap ${arr.map{it.value}.joinToString()}")
     }
 
     fun isLeaf(pos:Int):Boolean
@@ -452,7 +451,6 @@ class  MinHeap {
             
             if(arr[pnt].value > arr[cur].value){
                 swap(cur, pnt)
-                cur = pnt
             }
             else{
                 break;
@@ -465,9 +463,9 @@ class  MinHeap {
     }
     
     fun pop():Item{
-        //println("pop")
-        //println(arr.map { it.dist }.joinToString())
-        //println(arr.map { it.value }.joinToString())
+        println("pop")
+        println(arr.map { it.dist }.joinToString())
+        println(arr.map { it.value }.joinToString())
         val res = arr[0]
         arr[0] = arr[arr.lastIndex]
         arr.removeAt(arr.lastIndex)
@@ -479,51 +477,148 @@ class  MinHeap {
     }
 }
 
-
-fun getRange(parent:Int, curent:Int, p:List<Long>, h:List<Long>, tree:List<List<Int>>):Pair<Long, Long>?{
-    var l = -p[curent]
-    var g = p[curent]
+fun build(hp:MinHeap, cur:Int, pnt:Int, vl:Long,  depth:Int, maxDepth:Int, visited:HashSet<Int>, C:List<Long>, childs:List<MutableList<Int>>  ){  
+    if (vl != Long.MAX_VALUE){
+        hp.add(depth, vl + C[cur])
+    }
     
-    for (el in tree[curent]) {
-        if(el == parent){
-            continue
-        }
-        val ch = getRange(curent, el, p, h, tree)
-        if (ch == null){
-            return null
-        }
-        l+=ch.first
-        g+=ch.second        
+    visited.add(cur)
+    if(maxDepth <=  0)
+    {
+        return
     }
+    
+    
+    for (el in childs[cur]) {
+        if(el == pnt){continue}
+        if(visited.contains(el)){continue}
 
-    if(h[curent]< l || h[curent]>g || g % 2 != abs(h[curent ])% 2){
-        return  null
+        build(hp, el, cur, vl, depth+1, maxDepth -1, visited, C, childs)
     }
-    return Pair(h[curent], g)
     
 }
 
 fun main(args: Array<String>) {
-   
-    outer@ for (q in 1..readInt()) {
-        val (nn, m) = readLongs()
-        val n = nn.toInt()
-        val p = readLongs()
-        val h = readLongs()
-        
-        val edges = List(n) { mutableListOf<Int>() }
+    File("out.txt").delete()
+    with(Scanner(File("in.txt"))) {
 
-        for (i in 1 until n) {
-            val (x, y) = readInts().map{it-1}
-            edges[x].add(y)
-            edges[y].add(x)
-        }
+       outer@for (q in 1..nextInt()) {
+            val n = nextInt()         
+            val m = nextInt()
+            val a = nextInt() - 1
+            val b = nextInt() - 1
+            val parents = MutableList(n) { -1 }
+            val C = MutableList(n) { -1L }
+            val childs = List(n){mutableListOf<Int>()}
+            nextLine()
+            for (i in 0 until n) {
+                val p = nextInt() - 1
+                val c = nextLong()
+                nextLine()
+                parents[i] = if(p==-1) 0 else p
+                C[i] = if (c == 0L) Long.MAX_VALUE else c
+                if(p != -1){
+                    childs[p].add(i)
+                    childs[i].add(p)
+                }                
+            }
+            C[a] = 0L
 
-        val res = getRange(0, 0, p, h, edges)
+            var cur = a
+            val hs = HashSet<Int>()
+            var path = mutableListOf<Int>()
+            path.add(cur)
+            hs.add(a)
+            while(cur != 0){                
+                cur = parents[cur]
+                path.add(cur)
+                hs.add(cur)
+            }
 
-        println(if(res==null) "NO" else "YES")
-        
+            val tmpPath= mutableListOf<Int>()            
+            cur = b
+            tmpPath.add(cur)
+            while(!hs.contains(cur)){
+                cur = parents[cur]
+                tmpPath.add(cur)
+                // println("build")
+            }
+
+    
+            var removeindex = path.indexOf(cur)
+            path = path.take(removeindex+1).toMutableList()
+            for (i in tmpPath.lastIndex - 1 downTo 0) {
+                path.add(tmpPath[i])
+            }
+            
+            val hp = MinHeap()
+            var steps = m
+            var value = 0L
+            val pathHs = path.toHashSet()
+            
+            println(path.joinToString() )
+            for (i in 1..path.lastIndex) {
+                steps--
+                val dst = path.lastIndex - i
+                
+                if(steps < 0) {
+                    while(hp.peek() != null &&  hp.peek()!!.dist - dst >= m   )
+                    {
+                        hp.pop()
+                    }
+                    if(hp.peek() == null){
+                        File("out.txt").appendText("Case #$q: 0\n")
+                        continue@outer   
+                    }
+                    val nextItem = hp.pop()
+                    steps = nextItem.dist - dst
+                    value = nextItem.value
+                }
+
+                hp.add(dst, value+C[path[i]])
+
+                val el = path[i]
+                if(steps >= 0){
+                    if(i == path.lastIndex){
+                        break
+                    }
+                    build(hp, el, path[i+1], value, path.lastIndex - i, m, visited, C, childs)                                        
+                    println("build 1:${path[i]}")
+                    println(hp.arr.map{ "${it.dist}:${it.value};;"}.joinToString() )
+                    
+                    steps--                    
+                } else {
+                    var itm:Item;
+                    do{                        
+                        itm = hp.pop()
+                        println("do")
+                        println(i)
+                        println(path.lastIndex )
+                        println(itm.dist)
+                    }while(itm.dist - (path.lastIndex - i) >= m && hp.size > 0)
+                    if( itm.dist - (path.lastIndex - i) > m){
+                        File("out.txt").appendText("Case #$q: -1\n")
+                        continue@outer
+                    }
+                    value = itm.value
+                    steps = m - (itm.dist - (path.lastIndex - i))
+                    if(i != path.lastIndex){
+                        build(hp, el, path[i+1], value, path.lastIndex - i, m, visited, C, childs)                    
+                        println("build 2:${path[i]}")
+                    println(hp.arr.map{ "${it.dist}:${it.value};;"}.joinToString() )
+                    
+                    }
+                }   
+            }
 
 
+            // output(root)
+            // println(dp.joinToString(" "))
+            File("out.txt").appendText("Case #$q: ")
+            File("out.txt").appendText(value.toString())
+            File("out.txt").appendText("\n")
+       }
+
+       close()
     }
 }

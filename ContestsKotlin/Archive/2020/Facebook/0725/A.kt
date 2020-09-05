@@ -1,4 +1,4 @@
-package template
+package Archive
 
 import java.util.Queue
 import java.util.LinkedList
@@ -383,147 +383,35 @@ object Comb {
     }
 }
 
-class Item(val dist:Int, val value:Long){
 
-}
-
-class  MinHeap {
-    public val arr = mutableListOf<Item>()
-    
-    val size get() = arr.size
-    fun leftChild(pos:Int) = 2*(pos+1) - 1
-    fun rightChild(pos:Int) = 2*(pos+1)
-    fun parent(pos:Int) = (pos + 1) / 2 - 1
-
-    public fun add(d:Int, v:Long):Unit{
-        //println("add")
-        arr.add(Item(d, v))
-        up(arr.lastIndex)
-        // println("heap ${arr.map{it.value}.joinToString()}")
-    }
-
-    fun isLeaf(pos:Int):Boolean
-    { 
-        if ((2*(pos+1) - 1) >= size && (pos+1) <= size) { 
-            return true; 
-        } 
-        return false; 
-    } 
-
-    fun swap(i:Int, j:Int){
-        if(i == j) return
-        var v1 = arr[i]
-        var v2 = arr[j]
-        arr[i] = v2
-        arr[j] = v1
-    }
-
-    fun down(pos:Int) 
-    { 
-        var cur = pos
-        while(!isLeaf(cur)){
-            val lft = leftChild(cur)
-            val rght = rightChild(cur)           
-            
-            var swapto = cur
-            // println(swapto)
-            // println(lft)
-            // println(arr.joinToString() )
-            if(arr[lft].value < arr[cur].value){
-                swapto = lft
-            }
-            if(rght < size && arr[rght].value < arr[swapto].value){
-                swapto = rght
-            }
-            if(swapto == cur){
-                break
-            }
-            swap(cur, swapto)
-            cur = swapto
-        }
-       
-    } 
-
-    fun up(pos:Int) 
-    {         
-        var cur = pos
-        while(cur != 0){
-            val pnt = parent(cur)         
-            
-            if(arr[pnt].value > arr[cur].value){
-                swap(cur, pnt)
-                cur = pnt
-            }
-            else{
-                break;
-            }            
-        }       
-    }     
-    
-    fun peek():Item? {
-        return if(size == 0) null else  arr[0]
-    }
-    
-    fun pop():Item{
-        //println("pop")
-        //println(arr.map { it.dist }.joinToString())
-        //println(arr.map { it.value }.joinToString())
-        val res = arr[0]
-        arr[0] = arr[arr.lastIndex]
-        arr.removeAt(arr.lastIndex)
-        if(size != 0){
-            down(0)
-        }
-        return res
-
-    }
-}
-
-
-fun getRange(parent:Int, curent:Int, p:List<Long>, h:List<Long>, tree:List<List<Int>>):Pair<Long, Long>?{
-    var l = -p[curent]
-    var g = p[curent]
-    
-    for (el in tree[curent]) {
-        if(el == parent){
-            continue
-        }
-        val ch = getRange(curent, el, p, h, tree)
-        if (ch == null){
-            return null
-        }
-        l+=ch.first
-        g+=ch.second        
-    }
-
-    if(h[curent]< l || h[curent]>g || g % 2 != abs(h[curent ])% 2){
-        return  null
-    }
-    return Pair(h[curent], g)
-    
-}
 
 fun main(args: Array<String>) {
-   
-    outer@ for (q in 1..readInt()) {
-        val (nn, m) = readLongs()
-        val n = nn.toInt()
-        val p = readLongs()
-        val h = readLongs()
-        
-        val edges = List(n) { mutableListOf<Int>() }
 
-        for (i in 1 until n) {
-            val (x, y) = readInts().map{it-1}
-            edges[x].add(y)
-            edges[y].add(x)
-        }
+    with(Scanner(File("in.txt"))) {
+       for (q in 1..nextInt()) {
+            val n = nextInt()
+            nextLine()
+           
+            val I =  nextLine().trim()
+            val O =  nextLine().trim()
+            val res = MutableList(n) { MutableList(n) { 'N' } }
+            for (i in 0..(n-1)) {
+                res[i][i] = 'Y'
+                for (jr in (i+1)..(n-1)) {
+                    // println("1: $i $jr")
+                   res[i][jr] = if(res[i][jr-1] == 'Y' && I[jr] == 'Y' && O[jr-1] == 'Y' ) 'Y' else 'N'
+                }
+                for (jl in (i-1) downTo 0) {
+                    // println("2: $i $jl")
+                    res[i][jl] = if(res[i][jl+1] == 'Y' && I[jl] == 'Y' && O[jl+1] == 'Y' ) 'Y' else 'N'
+                }
+                
+            }
+            File("out.txt").appendText("Case #$q: \n")
+            File("out.txt").appendText(res.joinToString("\n"){it.joinToString("")  }  )
+            File("out.txt").appendText("\n")
+       }
 
-        val res = getRange(0, 0, p, h, edges)
-
-        println(if(res==null) "NO" else "YES")
-        
-
-
+       close()
     }
 }

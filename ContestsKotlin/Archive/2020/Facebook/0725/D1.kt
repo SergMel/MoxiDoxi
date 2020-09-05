@@ -1,4 +1,4 @@
-package template
+package Archive.Y2019
 
 import java.util.Queue
 import java.util.LinkedList
@@ -383,147 +383,141 @@ object Comb {
     }
 }
 
-class Item(val dist:Int, val value:Long){
 
-}
-
-class  MinHeap {
-    public val arr = mutableListOf<Item>()
-    
-    val size get() = arr.size
-    fun leftChild(pos:Int) = 2*(pos+1) - 1
-    fun rightChild(pos:Int) = 2*(pos+1)
-    fun parent(pos:Int) = (pos + 1) / 2 - 1
-
-    public fun add(d:Int, v:Long):Unit{
-        //println("add")
-        arr.add(Item(d, v))
-        up(arr.lastIndex)
-        // println("heap ${arr.map{it.value}.joinToString()}")
+class Node(var index:Int, var value:Long, val range:Pair<Int, Int>,  val left:Node?, val right:Node?){
+    constructor(index:Int, value:Long, range:Pair<Int, Int>):this(index, value, range, null, null) {        
     }
 
-    fun isLeaf(pos:Int):Boolean
-    { 
-        if ((2*(pos+1) - 1) >= size && (pos+1) <= size) { 
-            return true; 
-        } 
-        return false; 
-    } 
-
-    fun swap(i:Int, j:Int){
-        if(i == j) return
-        var v1 = arr[i]
-        var v2 = arr[j]
-        arr[i] = v2
-        arr[j] = v1
-    }
-
-    fun down(pos:Int) 
-    { 
-        var cur = pos
-        while(!isLeaf(cur)){
-            val lft = leftChild(cur)
-            val rght = rightChild(cur)           
-            
-            var swapto = cur
-            // println(swapto)
-            // println(lft)
-            // println(arr.joinToString() )
-            if(arr[lft].value < arr[cur].value){
-                swapto = lft
-            }
-            if(rght < size && arr[rght].value < arr[swapto].value){
-                swapto = rght
-            }
-            if(swapto == cur){
-                break
-            }
-            swap(cur, swapto)
-            cur = swapto
+    public fun update(index:Int, value:Long){
+        if(index < range.first || index > range.second){
+            return 
         }
-       
-    } 
+        if(index == range.first && index == range.second){
+            this.value = value
+            return 
+        }
+        if(index <= left!!.range.second) {
+            left.update(index, value)
+        } else {
+            right!!.update(index, value)
+        }
+        if(left.value >= right!!.value){
+            this.index = right.index
+            this.value = right.value
+        } else{
+            this.index = left.index
+            this.value = left.value
+        }
+        
+    }
 
-    fun up(pos:Int) 
-    {         
-        var cur = pos
-        while(cur != 0){
-            val pnt = parent(cur)         
-            
-            if(arr[pnt].value > arr[cur].value){
-                swap(cur, pnt)
-                cur = pnt
-            }
-            else{
-                break;
-            }            
+    public fun getMin(l:Int, r:Int):Pair<Int, Long>{
+        if(l <= range.first && r >= range.second ){
+            return Pair(index, value)
         }       
-    }     
-    
-    fun peek():Item? {
-        return if(size == 0) null else  arr[0]
-    }
-    
-    fun pop():Item{
-        //println("pop")
-        //println(arr.map { it.dist }.joinToString())
-        //println(arr.map { it.value }.joinToString())
-        val res = arr[0]
-        arr[0] = arr[arr.lastIndex]
-        arr.removeAt(arr.lastIndex)
-        if(size != 0){
-            down(0)
-        }
-        return res
 
+        if (r < range.first || l > range.second){
+            throw Exception("should not reach")
+        }
+
+        var li = -1
+        var lvalue = -1L
+        if(l <= left!!.range.second){
+            val tmp = left.getMin(l, r)
+            li = tmp.first
+            lvalue = tmp.second
+        }
+        var ri = -1
+        var rvalue = -1L
+        if(r >= right!!.range.first){
+            val tmp = right.getMin(l, r)
+            ri = tmp.first
+            rvalue = tmp.second
+        }
+
+        if(li != -1 && ri != -1){
+            return if(lvalue < rvalue) Pair(li, lvalue) else Pair(ri, rvalue)
+        } else if(li!=-1){
+            return Pair(li, lvalue)
+        } else {
+            return Pair(ri, rvalue)
+        }
     }
+
 }
 
-
-fun getRange(parent:Int, curent:Int, p:List<Long>, h:List<Long>, tree:List<List<Int>>):Pair<Long, Long>?{
-    var l = -p[curent]
-    var g = p[curent]
-    
-    for (el in tree[curent]) {
-        if(el == parent){
-            continue
-        }
-        val ch = getRange(curent, el, p, h, tree)
-        if (ch == null){
-            return null
-        }
-        l+=ch.first
-        g+=ch.second        
+fun build(C:List<Long>, left:Int, right:Int):Node{
+    if(left == right){
+        return Node(left, C[left], Pair(left, right))
     }
-
-    if(h[curent]< l || h[curent]>g || g % 2 != abs(h[curent ])% 2){
-        return  null
-    }
-    return Pair(h[curent], g)
-    
+    val middle = (left+right) / 2
+    val leftNode = build(C, left, middle)
+    val rightNode = build(C, middle+1, right)
+    if (C[leftNode.index] < C[rightNode.index]){
+        return Node(leftNode.index, C[leftNode.index], Pair(left, right), leftNode, rightNode)
+     } else {
+        return Node(rightNode.index, C[rightNode.index], Pair(left, right), leftNode, rightNode)
+     }
 }
+
+fun output(root:Node?){
+    if(root == null ){
+        return
+    }
+    if(root.left == null){
+        println("i: ${root.index}, value:${root.value}")
+        return 
+    }
+    output(root.left)
+    output(root.right)
+}
+
 
 fun main(args: Array<String>) {
-   
-    outer@ for (q in 1..readInt()) {
-        val (nn, m) = readLongs()
-        val n = nn.toInt()
-        val p = readLongs()
-        val h = readLongs()
-        
-        val edges = List(n) { mutableListOf<Int>() }
+    File("out.txt").delete()
+    with(Scanner(File("in.txt"))) {
 
-        for (i in 1 until n) {
-            val (x, y) = readInts().map{it-1}
-            edges[x].add(y)
-            edges[y].add(x)
-        }
+       outer@for (q in 1..nextInt()) {
+            val n = nextInt()         
+            val m = nextInt()
+            nextLine()
+            val C = List(n){nextLong()}.map { if(it == 0L) Long.MAX_VALUE else it }.toList()
 
-        val res = getRange(0, 0, p, h, edges)
+            val root = build(C, 0, n-1)            
 
-        println(if(res==null) "NO" else "YES")
-        
+            val dp = MutableList(n){-1L}
+            for (i in 0 until min(m, n-1)) {
+                dp[i+1] = 0L
+            }
+            var cur = m+1
+            var last = -1
+            while(cur < n){
+                val (index, value) = root.getMin(cur - m, cur-1)
+                // println("cur: ${cur}")
+                // println("index: ${index}, value: ${value}")
+                if(value == Long.MAX_VALUE){
+                    File("out.txt").appendText("Case #$q: -1\n")
+                    continue@outer
+                }
+                dp[cur] = value
+                // println("i: ${i}")
+                // println("index: ${index}, value: ${value}")
+                for (i in cur..min(n-1, (index+m))) {
+                    // println("i: ${i}")
+                    dp[i] = dp[cur]
+                    root.update(i, if( C[i] == Long.MAX_VALUE) Long.MAX_VALUE else  dp[i]+C[i])                    
+                }
+                cur = index+m+1
 
+            
+            }
+            // output(root)
+            // println(dp.joinToString(" "))
+            File("out.txt").appendText("Case #$q: ")
+            File("out.txt").appendText(dp[n-1].toString())
+            File("out.txt").appendText("\n")
+       }
 
+       close()
     }
 }
