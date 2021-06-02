@@ -1,4 +1,12 @@
-# MoxiDoxi
-My first git-android-java app
-test checkin
-test checkin 2
+[
+  8,
+  6,
+  -2,  
+  2,  
+  4,  
+  17,  
+  256,  
+  1024,  
+  -17,  
+  -19  
+]
