@@ -6,16 +6,7 @@ namespace Contest
 {
     
     class Program
-    {
-        static void Reverse(int i, int j, int[] arr){
-            for (int k = i; k <= i + (j - i) / 2; k++)
-            {
-                var tmp = arr[j - k + i];
-                arr[j - k + i] = arr[k];
-                arr[k] = tmp;
-            }            
-        }
-
+    {       
         static void Main(string[] args)
         {        
             var queries = int.Parse(Console.ReadLine().Trim());
