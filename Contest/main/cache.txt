@@ -1,0 +1,265 @@
+// https://www.metacareers.com/profile/coding_puzzles
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.Linq;
+using System.Text;
+
+class Solution {
+
+
+  static string read_str() => Console.ReadLine().Trim();
+
+    static string[] read_strs() => Console.ReadLine().Trim().Split();
+
+    static int read_int() => int.Parse(Console.ReadLine().Trim());
+
+    static long read_long() => long.Parse(Console.ReadLine().Trim());
+
+    static int[] read_ints() =>
+        Array.ConvertAll(Console.ReadLine().Split(), int.Parse);
+
+    static long[] read_longs() =>
+        Array.ConvertAll(Console.ReadLine().Split(), long.Parse);
+
+    static void google_write(int q)
+    {
+        Console.WriteLine($"Case #{q + 1}:");
+    }
+
+    static void google_write(int q, string s)
+    {
+        Console.WriteLine($"Case #{q + 1}: {s}");
+    }
+    public static void Main()
+    {
+      
+        var N = read_int();
+        var H = read_ints();
+        var A = read_ints();
+        var B = read_ints();
+
+        Console.WriteLine(new Solution().getMinExpectedHorizontalTravelDistance(N, H, A, B) );
+    }
+  
+  public double getMinExpectedHorizontalTravelDistance(int N, int[] H, int[] A, int[] B) {
+    // Write your code here
+    const double bs = 1_000_000.0;
+
+        Dictionary<int, List<int>> starts = new Dictionary<int, List<int>>(N);
+        Dictionary<int, List<int>> ends = new Dictionary<int, List<int>>(N);
+
+        HashSet<int> points = new HashSet<int>(2 * N);
+
+        for (int i = 0; i < N; i++)
+        {
+            _dic_add_to_list(starts,A[i], i);
+            _dic_add_to_list(ends, B[i], i);
+            points.Add(A[i]);
+            points.Add(B[i]);
+        }
+
+        var sorted_points = points.ToArray();
+        Array.Sort (sorted_points);
+
+        SortedSet<int> heights_cut = new SortedSet<int>();
+        Dictionary<int, int> indices_cut = new Dictionary<int, int>();
+
+        var graph = Enumerable.Range(0, N).Select(el => new Node{Id = el}).ToDictionary(el=> el.Id, v=>v);
+
+        double[] even_prob = new double[N];
+        double[] left_even_avg = new double[N];
+        double[] right_even_avg = new double[N];
+        int prev_pnt = -1;        
+
+        Dictionary<int, List<(int st, int end)>> tops = new Dictionary<int, List<(int st, int end)>>();
+        foreach (var pnt in sorted_points)
+        {
+            if (prev_pnt == -1)
+            {
+                prev_pnt = pnt;
+            }
+            else if(heights_cut.Count >0 )
+            {               
+                
+                var max_h = heights_cut.Max;
+                var max_i = indices_cut[max_h];
+                even_prob[max_i] += (pnt - prev_pnt) / bs;
+                
+                left_even_avg[max_i] +=  (pnt - prev_pnt)*(pnt+prev_pnt - 2.0 * A[max_i])/(4.0 * bs);
+                right_even_avg[max_i] +=  (pnt - prev_pnt)*(2.0* B[max_i] - pnt- prev_pnt )/(4.0 * bs);
+                
+            }
+            var ends_to_remove = _dic_get_default(ends, pnt);
+            foreach (var end_i in ends_to_remove)
+            {
+                var end_i_height = H[end_i];
+                heights_cut.Remove (end_i_height);
+                indices_cut.Remove (end_i_height);
+            }
+
+            foreach (var end_i in ends_to_remove)
+            {
+                var below_height = heights_cut.GetViewBetween(0, H[end_i]).Max;
+                if (below_height == 0) continue;
+                var below_index = indices_cut[below_height];
+
+                _dic_get_default (graph, end_i).Right = below_index;
+            }
+
+            var starts_to_add = _dic_get_default(starts, pnt);
+            foreach (var start_i in starts_to_add)
+            {
+                var below_height =
+                    heights_cut.GetViewBetween(0, H[start_i]).Max;
+                if (below_height == 0) continue;
+                var below_index = indices_cut[below_height];
+                _dic_get_default (graph,start_i).Left =  below_index;
+            }
+
+            foreach (var start_i in starts_to_add)
+            {
+                var start_i_height = H[start_i];
+                heights_cut.Add (start_i_height);
+                indices_cut.Add (start_i_height, start_i);
+            }
+            prev_pnt = pnt;
+        }
+
+        var topology_sorted = topology_sort(graph, N);
+        var reversed_topology_sorted = new Stack<int>();
+
+        double[] left_discr_avg = new double[N];
+        double[] right_discr_avg = new double[N];
+
+        double[] probabilities = new double[N];
+        foreach (var itm in topology_sorted)
+        {
+            reversed_topology_sorted.Push(itm);
+            var left = graph[itm].Left;
+            var right = graph[itm].Right;
+            var prob = 0.5 * (probabilities[itm] +even_prob[itm]);
+            if(left != null) {
+                probabilities[left.Value] += prob;                
+                left_discr_avg[left.Value] += 0.5 * prob * (A[itm] - A[left.Value]);
+                right_discr_avg[left.Value] += 0.5 * prob * (-A[itm] + B[left.Value]);
+            } 
+            if(right != null) {
+                probabilities[right.Value] += prob;                
+                left_discr_avg[right.Value] += 0.5 * prob * (B[itm] - A[right.Value]);
+                right_discr_avg[right.Value] += 0.5 * prob * (-B[itm] + B[right.Value]);
+            }            
+        }
+
+        var expected_left = new double[N];
+        var expected_right = new double[N];
+        
+        foreach (var itm in reversed_topology_sorted)
+        {
+            var left = graph[itm].Left;
+            var right = graph[itm].Right;
+            // var prob = 0.5 * (probabilities[itm] +even_prob[itm]);
+            
+            if(left != null) {
+                expected_left[itm] +=  (expected_left[left.Value] + expected_right[left.Value])+( - A[left.Value] + B[left.Value]  )   / 2.0;                
+            }
+            if(right != null) {
+                expected_right[itm] += (expected_left[right.Value] + expected_right[right.Value] )+(- A[right.Value] + B[right.Value]) / 2.0;                
+            }
+        }        
+
+        double max_diff = 0.0;
+        double res = 0.0;
+        for (int i = 0; i < N; i++)
+        {
+            if( left_even_avg[i] > 0) {
+                res += (left_even_avg[i] + right_even_avg[i])  + (expected_left[i] + expected_right[i]) * even_prob[i] / 2.0;                
+            }
+            max_diff = Math.Max(max_diff, Math.Abs((left_even_avg[i] - right_even_avg[i]) + (left_discr_avg[i] - right_discr_avg[i])
+                + (expected_left[i] - expected_right[i]) * (even_prob[i] + probabilities[i]) / 2.0 ) );
+        }
+        return res - max_diff;
+  }
+
+  static double direct_calc(Dictionary<int, Node> graph, int N, int[] H, int[] A, int[] B ) {
+
+  }
+
+
+    static Stack<int> topology_sort(Dictionary<int, Node> graph, int N)
+    {
+        bool[] visited = new bool[N];
+        Stack<int> st = new Stack<int>();
+        for (int i = 0; i < N; i++)
+        {
+            if (visited[i]) continue;
+
+            topology_sort (graph, N, i, visited, st);
+        }
+        return st;
+    }
+
+    static void topology_sort(
+        Dictionary<int, Node> graph,
+        int N,
+        int i,
+        bool[] visited,
+        Stack<int> st
+    )
+    {
+        if(graph[i].Left != null && !visited[graph[i].Left.Value]){
+            topology_sort (graph, N, graph[i].Left.Value, visited, st);
+        }
+        if(graph[i].Right != null && !visited[graph[i].Right.Value]){
+            topology_sort (graph, N, graph[i].Right.Value, visited, st);
+        }
+
+        visited[i] = true;
+        st.Push (i);
+    }
+  
+      static void _dic_add_to_list<T, V, C>(
+        IDictionary<T, C> dic,
+        T key,
+        V val
+    )
+        where C : IList<V>, new()
+    {
+        if (dic == null) throw new ArgumentNullException();
+
+        if (!dic.ContainsKey(key)) dic[key] = new C();
+
+        dic[key].Add(val);
+    }
+
+    static void _dic_add_to_list_unique<T, V, C>(
+        IDictionary<T, C> dic,
+        T key,
+        V val
+    )
+        where C : IList<V>, new()
+    {
+        if (dic == null) throw new ArgumentNullException();
+
+        if (!dic.ContainsKey(key)) dic[key] = new C();
+        if(!dic[key].Contains(val) ) dic[key].Add(val);
+    }
+
+    static V _dic_get_default<T, V>(IDictionary<T, V> dic, T key)
+        where V : new()
+    {
+        if (dic == null) throw new ArgumentNullException();
+
+        if (!dic.ContainsKey(key)) return new V();
+
+        return dic[key];
+    }
+
+    class Node{
+        public int Id {get;set;}
+        public int? Left {get;set;}
+        public int? Right {get;set;}
+    }
+
+}

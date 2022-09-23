@@ -1,0 +1,731 @@
+
+// 32694.887466
+
+// 32874.885169
+// tech debts:
+// 1 - try timer_index for used nodes, instead of initializing to -1
+// 2 - try array.copy variant for initializing array value to -1 or other values
+
+// Write any using statements here
+
+// #define TEST_RUN
+
+using System.Collections.Generic;
+using System;
+using System.IO;
+using System.Linq;
+using System.Text;
+using System.Diagnostics;
+
+static class Solution
+{
+
+    static Stopwatch watch = Stopwatch.StartNew();
+
+    static Random rnd = new Random(DateTime.Now.Millisecond);
+
+    static void Shuffle<T>(this IList<T> list)
+    {
+        int n = list.Count;
+        while (n > 1)
+        {
+            n--;
+            int k = rnd.Next(n + 1);
+            T value = list[k];
+            list[k] = list[n];
+            list[n] = value;
+        }
+    }
+
+    public static readonly short[] minus_one_pattern = { -1, -1, -1, -1, -1, -1, -1, -1 };
+
+    public static void Fill2<T>(this T[] destinationArray, params T[] value)
+    {
+        // set the initial array value
+        Array.Copy(value, destinationArray, value.Length);
+
+        int copyLength, nextCopyLength;
+
+        for (copyLength = value.Length; (nextCopyLength = copyLength << 1) < destinationArray.Length; copyLength = nextCopyLength)
+        {
+            Array.Copy(destinationArray, 0, destinationArray, copyLength, copyLength);
+        }
+
+        Array.Copy(destinationArray, 0, destinationArray, copyLength, destinationArray.Length - copyLength);
+    }
+
+
+
+    struct Edge
+    {
+        public short u;
+        public short v;
+    }
+
+    struct Flow
+    {
+        public short s;
+        public short t;
+    }
+
+    struct IdPair
+    {
+        public readonly short id1;
+        public readonly short id2;
+
+        public IdPair(short id1, short id2)
+        {
+            if (id1 <= id2)
+            {
+                this.id1 = id1;
+                this.id2 = id2;
+            }
+            else
+            {
+                this.id2 = id1;
+                this.id1 = id2;
+            }
+        }
+
+        public static bool Equals(IdPair p1, IdPair p2)
+        {
+            return p1.id1 == p2.id1 && p1.id2 == p2.id2;
+        }
+        public bool Equals(IdPair pair)
+        {
+            return id1 == pair.id1 && id2 == pair.id2;
+        }
+
+
+        public bool Equals(short id1, short id2)
+        {
+            return id1 == this.id1 && id2 == this.id2;
+        }
+
+        public override bool Equals(object obj)
+        {
+            return this.Equals((IdPair)obj);
+        }
+
+        public override int GetHashCode()
+        {
+            return HashCode.Combine(id1, id2);
+
+        }
+    }
+
+    class State
+    {
+        public const short SFL = 200;
+        public const short GFL = 100;
+        public short n;
+        public short m;
+
+        public short[] group_usages = new short[4501];
+        public short[] node_usages;
+
+        // Edges
+        public int[] edge_capacity;
+        public short[] edge_distance;
+        public short[] edge_group;
+        public Edge[] edge_nodes;
+
+        public List<short>[] node_to_nodes;
+        public Dictionary<IdPair, List<short>> node_pair_to_edges;
+
+        // flows
+        public short flows_count;
+        public short[] flow_demands;
+        public Flow[] flow_nodes;
+
+        // Constraints
+        public HashSet<IdPair> conststraints;
+
+        // history
+        public bool[] flow_applied;
+        public (short[] edges, List<short> nodes)[] history;
+        public HashSet<short> applied_flow_ids;
+    }
+
+    static State state;
+
+    static void read_input()
+    {
+        state = new State();
+        var itmp = Array.ConvertAll(read_line().Split(), int.Parse);
+        state.n = (short)itmp[0];
+        state.m = (short)itmp[1];
+        var constrainedCount = itmp[2];
+        state.flows_count = (short)itmp[3];
+
+        state.edge_capacity = new int[state.m];
+        state.edge_distance = new short[state.m];
+        state.edge_group = new short[state.m];
+        state.edge_nodes = new Edge[state.m];
+        // state.node_to_nodes = new List<short>[state.n];
+        state.node_pair_to_edges = new Dictionary<IdPair, List<short>>(state.m);
+
+        state.node_usages = new short[state.n];
+
+        state.flow_demands = new short[state.flows_count];
+        state.flow_nodes = new Flow[state.flows_count];
+
+        state.flow_applied = new bool[state.flows_count];
+        state.applied_flow_ids = new HashSet<short>(state.flows_count);
+        state.history = new (short[] edges, List<short> nodes)[state.flows_count];
+
+        state.conststraints = new HashSet<IdPair>(constrainedCount);
+
+        HashSet<short>[] node_to_nodes = new HashSet<short>[state.n]; ;
+        for (int edgei = 0; edgei < state.m; edgei++)
+        {
+            var tmp = Array.ConvertAll(read_line().Trim().Split(), int.Parse);
+
+            var edgeId = (short)tmp[0];
+            var u = (short)tmp[2];
+            var v = (short)tmp[3];
+            state.edge_nodes[edgeId].u = u;
+            state.edge_nodes[edgeId].v = v;
+            state.edge_distance[edgeId] = (short)tmp[4];
+            state.edge_capacity[edgeId] = tmp[5];
+
+            state.edge_group[edgeId] = (short)tmp[1];
+
+            if (node_to_nodes[u] == null) node_to_nodes[u] = new HashSet<short>();
+            if (node_to_nodes[v] == null) node_to_nodes[v] = new HashSet<short>();
+
+            node_to_nodes[u].Add(v);
+            node_to_nodes[v].Add(u);
+
+            var node_pair = new IdPair(u, v);
+            if (!state.node_pair_to_edges.ContainsKey(node_pair)) state.node_pair_to_edges[node_pair] = new List<short>();
+            state.node_pair_to_edges[node_pair].Add(edgeId);
+        }
+
+        // some processing
+        state.node_to_nodes = node_to_nodes.Select(el => el != null ? el.ToList() : null).ToArray();
+
+        for (int constri = 0; constri < constrainedCount; constri++)
+        {
+            var tmp = Array.ConvertAll(read_line().Trim().Split(), short.Parse);
+            state.conststraints.Add(new IdPair(tmp[1], tmp[2]));
+        }
+
+        for (int flowi = 0; flowi < state.flows_count; flowi++)
+        {
+            var tmp = Array.ConvertAll(read_line().Trim().Split(), short.Parse);
+            var flowId = tmp[0];
+
+            state.flow_nodes[flowId].s = tmp[1];
+            state.flow_nodes[flowId].t = tmp[2];
+            state.flow_demands[flowId] = tmp[3];
+        }
+    }
+
+    static void apply_flow_path(short flow_id, List<short> node_path, short[] prev_edge_ids)
+    {
+        var st = state.flow_nodes[flow_id].s;
+
+        var demand = state.flow_demands[flow_id];
+        state.history[flow_id].edges = new short[node_path.Count - 1];
+        state.history[flow_id].nodes = node_path;
+
+        state.node_usages[st]++;
+
+        for (int i = 1; i < node_path.Count; i++)
+        {
+            var node_id = node_path[i];
+            var edge_id = prev_edge_ids[node_id];
+
+            state.node_usages[node_id]++;
+            state.group_usages[state.edge_group[edge_id]]++;
+
+            state.edge_capacity[edge_id] -= demand;
+            state.history[flow_id].edges[i - 1] = edge_id;
+
+        }
+        state.flow_applied[flow_id] = true;
+        state.applied_flow_ids.Add(flow_id);
+    }
+
+    static void apply_flow_path_debug(short flow_id, List<short> node_path, short[] prev_edge_ids)
+    {
+        var st = state.flow_nodes[flow_id].s;
+
+        var demand = state.flow_demands[flow_id];
+        state.history[flow_id].edges = new short[node_path.Count - 1];
+        state.history[flow_id].nodes = node_path;
+
+        state.node_usages[st]++;
+        if (st != node_path[0] || state.flow_nodes[flow_id].t != node_path.Last())
+        {
+            throw new Exception();
+        }
+
+        if (state.node_usages[st] > State.SFL)
+        {
+            throw new Exception();
+        }
+
+
+        HashSet<short> visited = new HashSet<short>();
+        HashSet<short> visited_node = new HashSet<short>();
+        visited_node.Add(st);
+        for (int i = 1; i < node_path.Count; i++)
+        {
+            var node_id = node_path[i];
+            var edge_id = prev_edge_ids[node_id];
+            if (visited.Contains(edge_id))
+            {
+                throw new Exception();
+            }
+            if (visited_node.Contains(node_id))
+            {
+                throw new Exception();
+            }
+            visited.Add(edge_id);
+            visited_node.Add(node_id);
+            if (state.edge_nodes[edge_id].u != node_id && state.edge_nodes[edge_id].v != node_id ||
+                state.edge_nodes[edge_id].u != node_path[i - 1] && state.edge_nodes[edge_id].v != node_path[i - 1])
+            {
+                throw new Exception();
+            }
+
+            state.node_usages[node_id]++;
+            state.group_usages[state.edge_group[edge_id]]++;
+
+            state.edge_capacity[edge_id] -= demand;
+            state.history[flow_id].edges[i - 1] = edge_id;
+
+            if (state.node_usages[node_id] > State.SFL
+            || state.group_usages[state.edge_group[edge_id]] > State.GFL
+            || state.edge_capacity[edge_id] < 0 ||
+            state.conststraints.Contains(new IdPair(edge_id, prev_edge_ids[node_path[i - 1]])))
+            {
+                throw new Exception();
+            }
+
+        }
+        if (st != node_path.First()
+            || state.flow_nodes[flow_id].t != node_path.Last()
+            )
+        {
+            throw new Exception();
+        }
+        state.flow_applied[flow_id] = true;
+        state.applied_flow_ids.Add(flow_id);
+    }
+
+    static bool apply_if_possible_without_constraints_flow_path(short flow_id, List<short> node_path, short[] prev_edge_ids)
+    {
+        var st = state.flow_nodes[flow_id].s;
+
+        if (state.node_usages[st] >= State.SFL) return false;
+
+        var demand = state.flow_demands[flow_id];
+        state.history[flow_id].edges = new short[node_path.Count - 1];
+        state.history[flow_id].nodes = node_path;
+
+        state.node_usages[st]++;
+
+        int j = -1;
+        for (int i = 1; i < node_path.Count; i++)
+        {
+            var node_id = node_path[i];
+            var edge_id = prev_edge_ids[node_id];
+            var group_id = state.edge_group[edge_id];
+
+            if (state.edge_capacity[edge_id] - demand < 0 ||
+                state.node_usages[node_id] >= State.SFL || state.group_usages[group_id] >= State.GFL)
+            {
+                j = i - 1;
+                break;
+            }
+
+            state.node_usages[node_id]++;
+            state.group_usages[group_id]++;
+
+            state.edge_capacity[edge_id] -= demand;
+            state.history[flow_id].edges[i - 1] = edge_id;
+
+        }
+        // if (st != node_path.First() 
+        //     || state.flow_nodes[flow_id].t != node_path.Last()
+        //     )
+        // {
+        //     throw new Exception();
+        // }
+        if (j == -1)
+        {
+            state.flow_applied[flow_id] = true;
+            state.applied_flow_ids.Add(flow_id);
+            return true;
+        }
+
+        state.history[flow_id].edges = null;
+        state.history[flow_id].nodes = null;
+        state.node_usages[st]--;
+
+        for (int i = j; i > 0; i--)
+        {
+            var node_id = node_path[i];
+            var edge_id = prev_edge_ids[node_id];
+
+            state.node_usages[node_id]--;
+            state.group_usages[state.edge_group[edge_id]]--;
+            state.edge_capacity[edge_id] += demand;
+        }
+        return false;
+    }
+
+
+    static short select_edge_v1(short prev_edge_id, short s, short t, short flow_demand)
+    {
+        var edges = state.node_pair_to_edges[new IdPair(s, t)];
+
+        foreach (var edge_id in edges)
+        {
+            if (state.group_usages[state.edge_group[edge_id]] >= State.GFL ||
+                state.node_usages[t] >= State.SFL ||
+                state.edge_capacity[edge_id] < flow_demand ||
+                state.conststraints.Contains(new IdPair(edge_id, prev_edge_id))
+                 ) continue;
+
+            return edge_id;
+        }
+        return -1;
+    }
+
+
+    static short select_edge_v2(short prev_edge_id, short s, short t, short flow_demand)
+    {
+        var edges = state.node_pair_to_edges[new IdPair(s, t)];
+
+        var max_value = int.MinValue;
+        short index = -1;
+        foreach (var edge_id in edges)
+        {
+            if (state.group_usages[state.edge_group[edge_id]] >= State.GFL ||
+                state.node_usages[t] >= State.SFL ||
+                state.edge_capacity[edge_id] < flow_demand ||
+                state.conststraints.Contains(new IdPair(edge_id, prev_edge_id))
+                 ) continue;
+
+            if (state.edge_capacity[edge_id] > max_value)
+            {
+                max_value = state.edge_capacity[edge_id];
+                index = edge_id;
+            }
+        }
+        return index;
+    }
+
+    static short bfs_step(Queue<short> q, short[] prev_edges, short[] prev_nodes, short demand,
+        short[] prev_nodes_back, short[] prev_edges_back)
+    {
+        var cur = q.Dequeue();
+
+        var nb_nodes = state.node_to_nodes[cur];
+        if (nb_nodes == null) return -1;
+
+        var prev_edge = prev_edges[cur];
+        var prev_node = prev_nodes[cur];
+
+        foreach (var next_node in nb_nodes)
+        {
+            if (prev_nodes[next_node] != -1) continue;
+
+            var next_edge = select_edge_v1(prev_edge, cur, next_node, demand);
+            if (next_edge == -1) continue;
+
+            if (prev_nodes_back[next_node] != -1)
+            {
+                var prev_edge_back = prev_edges_back[next_node];
+                if (!state.conststraints.Contains(new IdPair(prev_edge_back, next_edge)))
+                {
+                    prev_edges[next_node] = next_edge;
+                    prev_nodes[next_node] = cur;
+                    return next_node;
+                }
+                continue;
+            }
+
+            prev_edges[next_node] = next_edge;
+            prev_nodes[next_node] = cur;
+
+            q.Enqueue(next_node);
+        }
+
+        return -1;
+    }
+
+    static (List<short> path_nodes, short[] prev_edges)? find_path_v2_bi_directional(int flow_id)
+    {
+        var st = state.flow_nodes[flow_id].s;
+        var tg = state.flow_nodes[flow_id].t;
+
+        if (state.node_usages[st] >= State.SFL || state.node_usages[tg] >= State.SFL) return null;
+
+        var demand = state.flow_demands[flow_id];
+
+        var q = new Queue<short>();
+        var prev_edges = new short[state.n];
+        var prev_nodes = new short[state.n];
+        Array.Fill(prev_nodes, (short)-1);
+        Array.Fill(prev_edges, (short)-1);
+        prev_nodes[st] = st;
+        q.Enqueue(st);
+
+        var q_back = new Queue<short>();
+        var prev_edges_back = new short[state.n];
+        var prev_nodes_back = new short[state.n];
+        Array.Fill(prev_nodes_back, (short)-1);
+        Array.Fill(prev_edges_back, (short)-1);
+        prev_nodes_back[tg] = tg;
+        q_back.Enqueue(tg);
+
+        short middle = -1;
+        while (q.Count > 0 && q_back.Count > 0 && middle == -1)
+        {
+            middle = bfs_step(q, prev_edges, prev_nodes, demand, prev_nodes_back, prev_edges_back);
+            if (middle != -1) break;
+            middle = bfs_step(q_back, prev_edges_back, prev_nodes_back, demand, prev_nodes, prev_edges);
+        }
+        if (middle == -1) return null;
+
+        List<short> path_nodes = new List<short>();
+        var curNode = middle;
+        while (curNode != st)
+        {
+            path_nodes.Add(curNode);
+            curNode = prev_nodes[curNode];
+        }
+        path_nodes.Add(curNode);
+        path_nodes.Reverse();
+
+        curNode = middle;
+        while (curNode != tg)
+        {
+            var nextNode = prev_nodes_back[curNode];
+            prev_edges[nextNode] = prev_edges_back[curNode];
+
+            curNode = nextNode;
+            path_nodes.Add(curNode);
+        }
+        return (path_nodes, prev_edges);
+    }
+
+
+    static (List<short> path_nodes, short[] prev_edges)? find_path_v1(int flow_id)
+    {
+        var st = state.flow_nodes[flow_id].s;
+        var tg = state.flow_nodes[flow_id].t;
+
+        if (state.node_usages[st] >= State.SFL || state.node_usages[tg] >= State.SFL) return null;
+
+        var demand = state.flow_demands[flow_id];
+
+        var q = new Queue<short>();
+        var prev_edges = new short[state.n];
+        var prev_nodes = new short[state.n];
+        for (int i = 0; i < state.n; i++)
+        {
+            prev_nodes[i] = -1;
+        }
+
+        q.Enqueue(st);
+        bool found = false;
+        while (q.Count > 0 && !found)
+        {
+            var cur = q.Dequeue();
+
+            var nb_nodes = state.node_to_nodes[cur];
+            if (nb_nodes == null) continue;
+
+            var prev_edge = prev_edges[cur];
+            var prev_node = prev_nodes[cur];
+
+            foreach (var next_node in nb_nodes)
+            {
+                if (prev_nodes[next_node] != -1) continue;
+
+                var next_edge = select_edge_v1(prev_edge, cur, next_node, demand);
+                if (next_edge == -1) continue;
+
+                prev_edges[next_node] = next_edge;
+                prev_nodes[next_node] = cur;
+                if (next_node == tg)
+                {
+                    found = true;
+                    break;
+                }
+
+                q.Enqueue(next_node);
+            }
+        }
+        if (!found) return null;
+
+        List<short> path_nodes = new List<short>();
+        var curNode = tg;
+        while (curNode != st)
+        {
+            path_nodes.Add(curNode);
+            curNode = prev_nodes[curNode];
+        }
+        path_nodes.Add(curNode);
+
+        path_nodes.Reverse();
+        return (path_nodes, prev_edges);
+    }
+
+    static StringBuilder build_output()
+    {
+        StringBuilder sb = new StringBuilder();
+
+        sb.Append((state.applied_flow_ids.Count).ToString());
+
+        foreach (var flow_id in state.applied_flow_ids)
+        {
+            var (edges, _) = state.history[flow_id];
+
+            sb.AppendLine();
+            sb.Append(flow_id.ToString());
+            for (int i = 0; i < edges.Length; i++)
+            {
+                sb.Append(' ');
+                sb.Append(edges[i]);
+            }
+        }
+        return sb;
+    }
+
+#if TEST_RUN
+    static Generator generator;
+    static IEnumerator<string> line_enumerator;
+    static StringBuilder dump;
+    static string read_line()
+    {
+        if (generator == null)
+        {
+            generator = new Generator();
+            line_enumerator = generator.GenerateLines(20, 30, 20, 15, 100, 50).GetEnumerator();
+        }
+        line_enumerator.MoveNext();
+        var res = line_enumerator.Current;
+        dump.AppendLine(res);
+        return res;
+    }
+
+    public static void Main()
+    {
+
+        try
+        {
+            while (true)
+            {
+                Console.WriteLine("Solving....");
+                dump = new StringBuilder();
+                read_input();
+                var shuffled = new short[state.flows_count];
+                for (short i = 0; i < state.flows_count; i++)
+                {
+                    shuffled[i] = i;
+                }
+                // shuffled.Shuffle();
+
+                for (short i = 0; i < state.flows_count; i++)
+                {
+                    var flow_id = shuffled[i];
+                    //if (watch.ElapsedMilliseconds > 1950) break;
+                    var path_finding_result = find_path_v2_bi_directional(flow_id);
+                    if (path_finding_result == null) continue;
+
+                    apply_flow_path_debug(flow_id, path_finding_result.Value.path_nodes, path_finding_result.Value.prev_edges);
+                }
+                Console.WriteLine(build_output());
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("===========================================================");
+            Console.WriteLine(dump.ToString());
+            System.IO.File.WriteAllText("dump.txt", dump.ToString());
+        }
+    }
+#else
+    static string read_line()
+    {
+        return Console.ReadLine().Trim();
+    }
+
+    public static void Main()
+    {
+        read_input();
+        var shuffled = new short[state.flows_count];
+        for (short i = 0; i < state.flows_count; i++)
+        {
+            shuffled[i] = i;
+        }
+        // shuffled.Shuffle();
+
+        SortedDictionary<int, HashSet<short>> flows = new SortedDictionary<int, HashSet<short>>();
+        var pathes = new (List<short> path_nodes, short[] prev_edges)[state.flows_count];
+
+        for (short i = 0; i < state.flows_count; i++)
+        {
+            var flow_id = shuffled[i];
+            //if (watch.ElapsedMilliseconds > 1950) break;
+            var path_finding_result = find_path_v2_bi_directional(flow_id);
+            if (path_finding_result == null) continue;
+
+            if (!flows.ContainsKey(path_finding_result.Value.path_nodes.Count))
+            {
+                flows[path_finding_result.Value.path_nodes.Count] = new HashSet<short>();
+            }
+            flows[path_finding_result.Value.path_nodes.Count].Add(flow_id);
+            pathes[flow_id] = path_finding_result.Value;
+        }
+
+        while (watch.ElapsedMilliseconds < 1900 && flows.Count > 0)
+        {
+            var dist = flows.Keys.First();
+            var flow_id = flows[dist].First();
+
+            flows[dist].Remove(flow_id);
+
+            if (!apply_if_possible_without_constraints_flow_path(flow_id, pathes[flow_id].path_nodes, pathes[flow_id].prev_edges))
+            {
+                pathes[flow_id] = default;
+
+                var path_finding_result = find_path_v2_bi_directional(flow_id);
+                if (path_finding_result == null)
+                {
+                    if (flows[dist].Count == 0) flows.Remove(dist);
+                    continue;
+                };
+                if (dist >= path_finding_result.Value.path_nodes.Count)
+                {
+                    apply_flow_path(flow_id, path_finding_result.Value.path_nodes, path_finding_result.Value.prev_edges);
+                }
+                else
+                {
+                    if (!flows.ContainsKey(path_finding_result.Value.path_nodes.Count))
+                    {
+                        flows[path_finding_result.Value.path_nodes.Count] = new HashSet<short>();
+                    }
+                    flows[path_finding_result.Value.path_nodes.Count].Add(flow_id);
+                    pathes[flow_id] = path_finding_result.Value;
+                }
+            }
+            else
+            {
+                pathes[flow_id] = default;
+            }
+            if (flows[dist].Count == 0) flows.Remove(dist);
+        }
+
+        Console.WriteLine(build_output());
+    }
+#endif
+
+}

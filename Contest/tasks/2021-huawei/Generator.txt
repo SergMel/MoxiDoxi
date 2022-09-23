@@ -1,0 +1,120 @@
+using System;
+using System.Collections.Generic;
+using System.Collections.Specialized;
+using System.Collections;
+using System.Linq;
+using System.Text;
+using System.Diagnostics;
+using System.IO;
+
+public class Generator
+{
+    Random rnd = new Random(DateTime.Now.Millisecond);
+
+    public IEnumerable<string> GenerateLines(int inn = int.MaxValue, int im = int.MaxValue,
+        int iconstraintCount = int.MaxValue, int iflowCount = int.MaxValue, int imaxCapacity = int.MaxValue, int imaxFlow = int.MaxValue)
+    {
+        while (true)
+        {
+            var n = Math.Min(Math.Max(8, inn), 1400);
+
+            var m = Math.Min(Math.Max(15, im), 15000);
+            var constraintCount = Math.Min(Math.Max(3, iconstraintCount), 3600);
+            var flowCount = Math.Min(Math.Max(1, iflowCount), 14000);
+            var maxCapacity = Math.Min(Math.Max(1, imaxCapacity), 100000);
+            var maxFlow = Math.Min(Math.Max(2, imaxFlow), 12000);
+
+            n = 8 + rnd.Next(n - 8);
+            m = 15 + rnd.Next(m - 15);
+            flowCount = 1 + rnd.Next(flowCount -1);
+            constraintCount = rnd.Next(constraintCount - 3) + 3;
+
+            var edges = new List<(int, int, int, int, int, int)>();
+
+            yield return $"{n} {m} {constraintCount} {flowCount}";
+
+            Dictionary<int, List<int>> nodeToEdges = new Dictionary<int, List<int>>();
+            var gi = 0;
+            Dictionary<int, int> edgeGroup = new Dictionary<int, int>();
+            Dictionary<int, int> node_of_group = new Dictionary<int, int>();
+            
+            for (int i = 0; i < m; i++)
+            {
+                var v = rnd.Next(n);
+                var u = 0;
+                do
+                {
+                    u = rnd.Next(n);
+                } while (v == u);
+
+                var distance = rnd.Next(100, 10001);
+                var capacity = rnd.Next(maxCapacity - 1) + 1;
+                edges.Add((i, i, u, v, distance, capacity));
+
+                if (!nodeToEdges.ContainsKey(u)) nodeToEdges[u] = new List<int>();
+                if (!nodeToEdges.ContainsKey(v)) nodeToEdges[v] = new List<int>();
+                
+                edgeGroup[i] = gi;
+                gi++;
+                nodeToEdges[u].Add(i);
+                nodeToEdges[v].Add(i);
+
+
+                yield return $"{i} {gi} {u} {v} {distance} {capacity}";
+            }
+
+            var constrains = new List<(int, int, int)>();
+
+            var nodeIds = nodeToEdges.Where(el => el.Value.Count >= 2).Select(el => el.Key).ToList();
+
+            for (int i = 0; i < constraintCount; i++)
+            {
+                if (nodeIds.Count > 0)
+                {
+                    var nodeId = nodeIds[rnd.Next(nodeIds.Count)];
+                    var lst = nodeToEdges[nodeId];
+
+                    var id1 = rnd.Next(lst.Count);
+                    var id2 = id1;
+                    do
+                    {
+                        id2 = rnd.Next(lst.Count);
+                    } while (id1 == id2);
+                    constrains.Add((nodeId, id1, id2));
+
+                    yield return $"{nodeId} {id1} {id2}";
+                }
+                else
+                {
+                    var nodeId = rnd.Next(n);
+                    var u = rnd.Next(m);
+                    var v = 0;
+                    do
+                    {
+                        v = rnd.Next(m);
+                    } while (v == u);
+
+                    yield return $"{nodeId} {u} {v}";
+                }
+            }
+
+            var flows = new List<(int, int, int, int)>();
+            for (int i = 0; i < flowCount; i++)
+            {
+                var v = rnd.Next(n);
+                var u = 0;
+                do
+                {
+                    u = rnd.Next(n);
+                } while (v == u);
+
+                var flow = rnd.Next(maxFlow - 1) + 1;
+
+                flows.Add((i, u, v, flow));
+
+                yield return $"{i} {u} {v} {flow}";
+
+            }
+        }
+    }
+}

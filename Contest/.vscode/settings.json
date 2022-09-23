@@ -1,0 +1,5 @@
+{
+    "csharp.format.enable": true,
+    "razor.format.enable": true,
+    "editor.formatOnPaste": true
+}

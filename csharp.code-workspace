@@ -1,0 +1,15 @@
+{
+  "folders": [
+    {
+      "path": "Contest/tasks"
+    },
+    {
+      "path": "Contest/templates"
+    },
+    {
+      "path": "Contest/main"
+    }
+  ],
+  "settings": {
+  }
+}
