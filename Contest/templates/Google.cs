@@ -9,6 +9,10 @@ using System.Text;
 
 class Solution
 {
+    static void write_google(int i, string s)
+    {
+        Console.WriteLine($"Case #{i}: {s}");
+    }
 
 
     public static void Main()

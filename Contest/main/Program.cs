@@ -1,16 +1,21 @@
-﻿//https://www.metacareers.com/profile/coding_puzzles
-
-// Write any using statements here
-using System.Collections.Generic;
+﻿
 using System;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Numerics;
+using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 static class Solution
 {
-    static V _dic_get_default<T, V>(this IDictionary<T, V> dic, T key)
+    static Random rnd = new Random(DateTime.Now.Millisecond);
+
+
+    static int read_int() => int.Parse(Console.ReadLine().Trim());
+    static int[] read_ints() => Array.ConvertAll(Console.ReadLine().Trim().Split(), int.Parse);
+    static long[] read_longs() => Array.ConvertAll(Console.ReadLine().Trim().Split(), long.Parse);
+    static string read_string() => Console.ReadLine().Trim();
+    static string[] read_strings() => Console.ReadLine().Trim().Split();
+
+
+    static V _dic_get_default<T, V>(IDictionary<T, V> dic, T key)
         where V : new()
     {
         if (dic == null) throw new ArgumentNullException();
@@ -18,6 +23,14 @@ static class Solution
         if (!dic.ContainsKey(key)) dic[key] = new V();
 
         return dic[key];
+    }
+    static void _dic_increment_int<T>(this IDictionary<T, int> dic, T key)
+    {
+        if (dic == null) throw new ArgumentNullException();
+
+        if (!dic.ContainsKey(key)) dic[key] = 0;
+
+        dic[key]++;
     }
 
     static void _dic_increment_long<T>(this IDictionary<T, long> dic, T key)
@@ -37,29 +50,24 @@ static class Solution
 
         dic[key] += val;
     }
-    const long mod = 1_000_000_007L;
 
+    static void _shuffle<T>(this IList<T> list)
+    {
+        int n = list.Count;
+        while (n > 1)
+        {
+            n--;
+            int k = rnd.Next(n + 1);
+            T value = list[k];
+            list[k] = list[n];
+            list[n] = value;
+        }
+    }
+
+    const long mod = 1_000_000_007L;
     static long mod7(this long val)
     {
         return val % mod;
-    }
-
-    static void _dic_increment_int<T>(this IDictionary<T, int> dic, T key)
-    {
-        if (dic == null) throw new ArgumentNullException();
-
-        if (!dic.ContainsKey(key)) dic[key] = 0;
-
-        dic[key]++;
-    }
-
-    static int read_int() => int.Parse(Console.ReadLine().Trim());
-    static int[] read_ints() => Array.ConvertAll(Console.ReadLine().Trim().Split(), int.Parse);
-    static long[] read_longs() => Array.ConvertAll(Console.ReadLine().Trim().Split(), long.Parse);
-    static string[] read_strings() => Console.ReadLine().Trim().Split();
-    static void write_google(int i, string s)
-    {
-        Console.WriteLine($"Case #{i}: {s}");
     }
 
     static void _dic_add_int<T>(this IDictionary<T, int> dic, T key, int val)
@@ -71,101 +79,82 @@ static class Solution
         dic[key] += val;
     }
 
-    static void add_levels(int level, Dictionary<int, int> levels,
-     Dictionary<int, List<int>> edges,
-     int cur, int prev)
+    public class Unknown
     {
-
-        levels._dic_increment_int(level);
-        foreach (var next in edges._dic_get_default(cur))
-        {
-            if (next == prev) continue;
-            add_levels(level + 1, levels, edges, next, cur);
-        }
+        [JsonPropertyName("pattern")]
+        public List<int> Pattern { get; set; }
+        [JsonPropertyName("result")]
+        public int Result { get; set; }
     }
 
-    class SType{
-        public SType(long q, long l, long v)
-        {
-            this.q = q;
-            this.l = l;
-            this.v = v;
-        }
-        public long q ;
-        public long l;
-        public long v;
-    }
-
-    public static void Main()
+    public static List<List<int>> Solve(List<List<int>> grid, List<Unknown> rules)
     {
-        var t_count = read_int();
-        for (int t = 0; t < t_count; t++)
+        // Write your code here
+
+        Dictionary<Tuple<int, int, int, int>, int> dic = new Dictionary<Tuple<int, int, int, int>, int>();
+
+        foreach (var rule in rules)
         {
-            var dnx = read_longs();
-            var d = dnx[0];
-            var n = dnx[1];
-            var x = dnx[2];
-            SType[] types = new SType[n];
-            for (int n_i = 0; n_i < n; n_i++)
+            rule.Pattern.Sort();
+            dic[Tuple.Create(rule.Pattern[0], rule.Pattern[1],
+             rule.Pattern[2], rule.Pattern[3])] = rule.Result;
+        }
+        List<List<int>> res = new List<List<int>>();
+        for (int i = 0; i < grid.Count - 1; i++)
+        {
+            res.Add(new List<int>());
+            for (int j = 0; j < grid[0].Count - 1; j++)
             {
-                var qlv = read_longs();
-                types[n_i] = new SType(qlv[0], qlv[1], qlv[2]);
+                res[i].Add(0);
+                var lst = new List<int> { grid[i][j], grid[i][j + 1], grid[i + 1][j], grid[i + 1][j + 1] };
+                lst.Sort();
+                var tpl = Tuple.Create(lst[0], lst[1], lst[2], lst[3]);
+                if (dic.ContainsKey(tpl))
+                {
+                    res[i][j] = dic[tpl];
+                }
+               
             }
-
-            types = types.OrderByDescending(el=>el.v).ToArray();
-            
-            BigInteger total = 0; 
-            var daysleft = d;
-            var current_day_left_seeds = x;
-            var index = 0;
-            while(index < types.Count())
-            {
-                var item = types[index];
-                if (item.l > daysleft) {
-                    index ++;
-                    continue;
-                }
-                if (current_day_left_seeds > 0 && current_day_left_seeds < x) {
-                    if (current_day_left_seeds >= item.q) {
-                        current_day_left_seeds -= item.q;
-                        total += BigInteger.Multiply(new BigInteger(item.q), new BigInteger(item.v));
-                        if(current_day_left_seeds == 0) {
-                            current_day_left_seeds = x;
-                            daysleft--;
-                        }    
-                        index ++;                   
-                        continue;
-                    } else {
-                        total += BigInteger.Multiply(new BigInteger(current_day_left_seeds), new BigInteger(item.v));
-                        item.q -= current_day_left_seeds;
-                        daysleft --;
-                        continue;
-                    }
-                    
-                }
-
-                var days_to_full_seed = daysleft - item.l;
-                if(days_to_full_seed > 0) {
-                    days_to_full_seed = Math.Min(days_to_full_seed, item.q / x);
-                    var non_full = item.q % x;
-                    total += BigInteger.Multiply(BigInteger.Multiply(new BigInteger(days_to_full_seed), new BigInteger(x)), new BigInteger(item.v));
-                    item.q -= days_to_full_seed * x;
-                    daysleft -= days_to_full_seed;
-                    if(item.q == 0) {
-                        index ++;
-                    }                    
-
-                } else {
-                    index ++;
-                    continue;
-                }
-
-            }
-
-            write_google(t + 1, total.ToString());
-
         }
 
+        return res;
     }
 
+    public static void Main() {
+
+        //    for (int i = 0; i <= 30; i ++)
+        //         for (int j = 0; j <= 30; j++)
+        //             for (int k = 0; k <= 20; k++)
+        //                 for (int l = 0; l <= 20; l++){
+        //                     Console.WriteLine($"{i} {j} {k} {l}");
+        //                     var res = Solve(i, j, k, l);
+        //                     if (res.Count >= 1000) {
+        //                         throw new Exception();
+        //                     }
+        //                     Console.WriteLine(string.Join(' ', res));
+        //                 }
+
+        var req = new List<List<int>>{
+           new List<int>()  {1,1,1},
+           new List<int>()  {1,1,4},
+           new List<int>()  {1,4,6},
+        };
+        var patterns = new List<Unknown>{
+            new Unknown{
+                 Pattern = new   List<int>{1,1,1,1},
+                 Result = 5,
+            },
+            new Unknown{
+                 Pattern = new   List<int>{1,1,1,4},
+                 Result = 6,
+            }
+        };
+        var res = Solve(req, patterns);
+        if (res.Count >= 1000)
+        {
+            throw new Exception();
+        }
+        Console.WriteLine(string.Join(' ', res));
+
+    }
 }
